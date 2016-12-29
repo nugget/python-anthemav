@@ -28,4 +28,7 @@ setup(
     ],
     include_package_data=True,
     zip_safe=True,
+    entry_points = {
+        'console_scripts': ['anthemav_console=anthemav.__main__:console']
+    },
 )
