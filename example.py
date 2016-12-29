@@ -2,6 +2,10 @@
 
 import anthemav
 import asyncore
+import logging
+import sys
+
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 a = anthemav.AnthemAVR()
 a.doconnect('172.28.0.92',14999)

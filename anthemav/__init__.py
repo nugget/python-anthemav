@@ -3,6 +3,7 @@
 import asynchat
 import socket
 import time
+import logging
 
 ATTRIBUTES = { 'Z1VOL', 'Z1POW', 'IDM', 'IDS', 'IDR', 'IDB', 'IDN', 'Z1VIR', 'Z1MUT', 'ICN'}
 
@@ -14,10 +15,11 @@ LOOKUP['Z1VIR'] = {'0': 'No Video', '1': 'Other Video', '2': '1080p60',
     '11': '480p60', '12': '480i60', '13': '3D', '14': '4K'}
 
 class AnthemAVR(asynchat.async_chat):
-    def __init__(self):
-        return
+    def __init__(self, logger=None):
+        self.logger = logger or logging.getLogger(__name__)
 
     def doconnect(self, host, port=14999):
+        self.logger.info('AnthemAV Attempting to connect')
         self.host = host
         self.port = port
         self.ibuffer = []
@@ -26,18 +28,26 @@ class AnthemAVR(asynchat.async_chat):
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         self.connect((self.host, self.port))
         self.set_terminator(b';')
-        return
+        self.logger.info('AnthemAVR doconnect is done')
 
     def handle_connect(self):
-        print('I am connected')
+        self.logger.debug('I am connected')
         self.populate()
 
+    def handle_connect_event(self):
+        self.logger.debug('I am connected by an event')
+        err = self.socket.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
+        if err:
+            self.logger.warn('hrmity')
+        self.connected = 1
+        self.handle_connect()
+
     def handle_error(self):
-        print('I had an error')
+        self.logger.warn('I had an error')
         time.sleep(10)
 
     def handle_excpt(self):
-        print('I cannot spell exception')
+        self.logger.warn('I cannot spell exception')
 
     def populate(self):
         self._input_name = {}
@@ -66,24 +76,24 @@ class AnthemAVR(asynchat.async_chat):
         self.push(b)
 
     def query(self,code):
-        print('Querying '+code)
+        self.logger.debug('Querying '+code)
         self.command(code+'?')
 
     def parse(self, data):
         for key in ATTRIBUTES:
             if data.startswith(key):
                 value = data[len(key):]
-                print(key+' is a key for data '+data+' and value is '+value)
+                self.logger.debug(key+' is a key for data '+data+' and value is '+value)
                 setattr(self, '_'+key, value)
 
         if data.startswith('ICN'):
-            print('Time to Pop')
+            self.logger.debug('Time to Pop')
             self.populate_inputs()
 
         if data.startswith('ISN'):
             input_number = int(data[3:5])
             value = data[5:]
-            print('Input '+str(input_number)+' is '+value)
+            self.logger.debug('Input '+str(input_number)+' is '+value)
             self._input_number[value] = input_number
             self._input_name[input_number] = value
         return
