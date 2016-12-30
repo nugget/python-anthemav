@@ -13,6 +13,8 @@ def create_anthemav_reader(host,port,message_callback,loop=None):
 
 class AnthemProtocol(asyncio.Protocol):
     def __init__(self, host, port, message_callback=None, loop=None):
+        self._host = host
+        self._port = port
         self.loop = loop 
         self.log = logging.getLogger(__name__)
         self.message_callback = message_callback
@@ -65,6 +67,25 @@ class AnthemProtocol(asyncio.Protocol):
             self.message_callback(self,data)
 
         return
+
+    @property
+    def attenuation(self):
+        try:
+            return int(self._Z1VOL)
+        except:
+            return -90
+
+    @property
+    def volume(self):
+        try:
+            return round((90.00 + int(self._Z1VOL)) / 90 * 100)
+        except:
+            return 0
+
+    @property
+    def volume_as_percentage(self):
+        vp = self.volume / 100
+        return vp
 
     @property
     def staticstring(self):
