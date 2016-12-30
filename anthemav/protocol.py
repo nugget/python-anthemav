@@ -4,7 +4,7 @@ import asyncio
 import logging
 from functools import partial
 
-ATTRIBUTES = { 'Z1VOL', 'Z1POW', 'IDM', 'IDS', 'IDR', 'IDB', 'IDN', 'Z1VIR', 'Z1MUT', 'ICN'}
+ATTRIBUTES = { 'Z1VOL', 'Z1POW', 'IDM', 'IDS', 'IDR', 'IDB', 'IDH', 'IDN', 'Z1VIR', 'Z1MUT', 'ICN', 'Z1INP'}
 
 def create_anthemav_reader(host,port,message_callback,loop=None):
     protocol = partial(AnthemProtocol,host,port,message_callback,loop)
@@ -20,18 +20,20 @@ class AnthemProtocol(asyncio.Protocol):
         self.message_callback = message_callback
         self.buffer = ''
         self.retry = 10
-        self._input_name = {}
-        self._input_number = {}
+        self._input_names = {}
+        self._input_numbers = {}
 
         for key in ATTRIBUTES:
             setattr(self, '_'+key, "")
 
+    def refresh_all(self):
+        for key in ATTRIBUTES:
+            self.query(key)
+
     def connection_made(self, transport):
         self.log.info('connection_made')
         self.transport = transport
-
-        for key in ATTRIBUTES:
-            self.query(key)
+        self.refresh_all()
 
     def data_received(self, data):
         self.buffer += data.decode()
@@ -65,7 +67,13 @@ class AnthemProtocol(asyncio.Protocol):
             if data.startswith(key):
                 value = data[len(key):]
                 self.log.info('Received value for '+key+': '+value)
+                oldvalue = getattr(self, '_'+key)
                 setattr(self, '_'+key, value)
+
+                if key == 'Z1POW' and value == '1' and oldvalue != value:
+                    self.refresh_all()
+
+                break
 
         if data.startswith('ICN'):
             self.populate_inputs(int(value))
@@ -73,9 +81,8 @@ class AnthemProtocol(asyncio.Protocol):
         if data.startswith('ISN'):
             input_number = int(data[3:5])
             value = data[5:]
-            self.log.debug('Input '+str(input_number)+' is '+value)
-            self._input_number[value] = input_number
-            self._input_name[input_number] = value
+            self._input_numbers[value] = input_number
+            self._input_names[input_number] = value
 
         # I was using this for debugging/forensics
         # self.log.warn(self.dump_rawdata)
@@ -115,7 +122,7 @@ class AnthemProtocol(asyncio.Protocol):
 
     def volume_to_attenuation(self,value):
         try:
-            return rount((value / 100) * -90)
+            return round((value / 100) * 90) - 90
         except:
             return -90
 
@@ -129,6 +136,7 @@ class AnthemProtocol(asyncio.Protocol):
     @attenuation.setter
     def attenuation(self,value):
         if isinstance(value, int) and -90 <= value <= 0:
+            self.log.debug('Setting attenuation to '+str(value))
             self.command('Z1VOL'+str(value))
 
     @property
@@ -138,7 +146,7 @@ class AnthemProtocol(asyncio.Protocol):
     @volume.setter
     def volume(self, value):
         if isinstance(value, int) and 0 <= value <= 100:
-            self.command('Z1VOL'+str(self.volume_to_attenuation(value)))
+            self.attenuation = self.volume_to_attenuation(value)
 
     @property
     def volume_as_percentage(self):
@@ -149,18 +157,18 @@ class AnthemProtocol(asyncio.Protocol):
     def volume_as_percentage(self,value):
         if isinstance(value, float) or isinstance(value, int):
             if 0 <= value <= 1:
-                value = value * 100
+                value = round(value * 100)
                 self.volume = value
 
     @property
     def power(self):
-        self.log.debug('request for power '+self._Z1POW)
         if self._Z1POW == '1':
             return True
         elif self._Z1POW == '0':
             return False
         else:
             return
+
     @power.setter
     def power(self,value):
         if value == True:
@@ -191,6 +199,34 @@ class AnthemProtocol(asyncio.Protocol):
     @property
     def macaddress(self):
         return self._IDN or "00:00:00:00:00:00"
+
+    @property
+    def input_list(self):
+        return list(self._input_numbers.keys())
+
+    @property
+    def input_name(self):
+        return self._input_names.get(self.input_number, "Unknown")
+
+    @input_name.setter
+    def input_name(self,value):
+        number = self._input_numbers.get(value, 0)
+        if number > 0:
+            self.input_number = number
+
+    @property
+    def input_number(self):
+        try:
+            return int(self._Z1INP)
+        except:
+            return 0
+    
+    @input_number.setter
+    def input_number(self,number):
+        if isinstance(number, int):
+            if 1 <= number <= 99:
+                self.log.info('Switching input to '+str(number))
+                self.command('Z1INP'+str(number))
 
     @property
     def staticstring(self):
