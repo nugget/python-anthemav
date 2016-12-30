@@ -107,24 +107,50 @@ class AnthemProtocol(asyncio.Protocol):
         else:
             self.log.warn('No transport found, unable to send command')
 
-    @property
-    def attenuation(self):
+    def attenuation_to_volume(self,value):
         try:
-            return int(self._Z1VOL)
+            return round((90.00 + int(value)) / 90 * 100) 
+        except:
+            return 0
+
+    def volume_to_attenuation(self,value):
+        try:
+            return rount((value / 100) * -90)
         except:
             return -90
 
     @property
-    def volume(self):
+    def attenuation(self):
         try:
-            return round((90.00 + int(self._Z1VOL)) / 90 * 100)
+            return int(self._Z1VOL) 
         except:
-            return 0
+            return -90
+
+    @attenuation.setter
+    def attenuation(self,value):
+        if isinstance(value, int) and -90 <= value <= 0:
+            self.command('Z1VOL'+str(value))
+
+    @property
+    def volume(self):
+        return attenuation_to_volume(self.attenuation)
+
+    @volume.setter
+    def volume(self, value):
+        if isinstance(value, int) and 0 <= value <= 100:
+            self.command('Z1VOL'+str(volume_to_attenuation(value)))
 
     @property
     def volume_as_percentage(self):
         vp = self.volume / 100
         return vp
+
+    @volume_as_percentage.setter
+    def volume_as_percentage(self,value):
+        if isinstance(value, float) or isinstance(value, int):
+            if 0 <= value <= 1:
+                value = value * 100
+                self.volume = value
 
     @property
     def power(self):

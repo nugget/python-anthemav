@@ -2,6 +2,8 @@ import argparse
 import asyncio
 import logging
 
+import anthemav
+
 from .protocol import create_anthemav_reader
 
 def console():
