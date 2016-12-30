@@ -133,12 +133,12 @@ class AnthemProtocol(asyncio.Protocol):
 
     @property
     def volume(self):
-        return attenuation_to_volume(self.attenuation)
+        return self.attenuation_to_volume(self.attenuation)
 
     @volume.setter
     def volume(self, value):
         if isinstance(value, int) and 0 <= value <= 100:
-            self.command('Z1VOL'+str(volume_to_attenuation(value)))
+            self.command('Z1VOL'+str(self.volume_to_attenuation(value)))
 
     @property
     def volume_as_percentage(self):
