@@ -20,12 +20,8 @@ def console():
 
     loop = asyncio.get_event_loop()
 
-    def print_callback(telegram):
-        """Callback that prints telegram values."""
-        for obiref, obj in telegram.items():
-            if obj:
-                print(obj.value, obj.unit)
-        print()
+    def print_callback(callerobj,message):
+        print(message)
 
     conn = create_anthemav_reader(args.host,args.port,print_callback,loop=loop)
 
