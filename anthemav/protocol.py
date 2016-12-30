@@ -59,8 +59,16 @@ class AnthemProtocol(asyncio.Protocol):
                 self.log.debug(key+' is a key for data '+data+' and value is '+value)
                 setattr(self, '_'+key, value)
 
-        self.log.debug(self.dump_rawdata)
+        self.log.warn(self.dump_rawdata)
+
+        if self.message_callback:
+            self.message_callback(self,data)
+
         return
+
+    @property
+    def staticstring(self):
+        return "I like cows"
 
     @property
     def dump_rawdata(self):
