@@ -1,5 +1,4 @@
-# python-anthemav
-Python API for controlling Anthem Receivers
+# Python package to interface with Anthem AVM and MRX receivers and processors
 
+[![Build Status](https://travis-ci.org/nugget/python-anthemav.svg?branch=master)](https://travis-ci.org/nugget/python-anthemav)
 
-    find -name '*.pyc' -delete && clear && anthemav_console --host 172.28.0.92 --port 14999 --verbose
