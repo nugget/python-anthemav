@@ -1,23 +1,21 @@
-#!/usr/bin/env python3
-
 import asyncio
 import logging
 from functools import partial
 
+# In Python 3.4.4, `async` was renamed to `ensure_future`.
+try:
+    ensure_future = asyncio.ensure_future
+except AttributeError:
+    ensure_future = asyncio.async
+
 ATTRIBUTES = { 'Z1VOL', 'Z1POW', 'IDM', 'IDS', 'IDR', 'IDB', 'IDH', 'IDN', 'Z1VIR', 'Z1MUT', 'ICN', 'Z1INP'}
 
-def create_anthemav_reader(host,port,message_callback,loop=None):
-    protocol = partial(AnthemProtocol,host,port,message_callback,loop)
-    conn = loop.create_connection(lambda: AnthemProtocol(host,port,message_callback,loop),host,port)
-    return conn
-
 class AnthemProtocol(asyncio.Protocol):
-    def __init__(self, host, port, message_callback=None, loop=None):
-        self._host = host
-        self._port = port
+    def __init__(self, update_callback=None, loop=None, connection_lost_callback=None):
         self.loop = loop 
         self.log = logging.getLogger(__name__)
-        self.message_callback = message_callback
+        self._connection_lost_callback = connection_lost_callback
+        self._update_callback = update_callback
         self.buffer = ''
         self.retry = 10
         self._input_names = {}
@@ -41,7 +39,17 @@ class AnthemProtocol(asyncio.Protocol):
         self.assemble_buffer()
 
     def connection_lost(self, exc):
-        self.log.info('connection_lost')
+        if exc is None:
+            self.log.warn('eof from receiver?')
+        else:
+            self.log.warn("Lost connection to %s" % exc)
+            self._reader.set_exception(exc)
+
+        self._is_connected = False
+        self.transport = None
+
+        if self._connection_lost_callback:
+            self._connection_lost_callback()
 
 
     def assemble_buffer(self):
@@ -87,10 +95,8 @@ class AnthemProtocol(asyncio.Protocol):
         # I was using this for debugging/forensics
         # self.log.warn(self.dump_rawdata)
         
-        if self.message_callback:
-            self.message_callback(self,data)
-
-        return
+        if self._update_callback:
+            self._update_callback(data)
 
     def ping(self):
         self.log.info('Request to Ping')
