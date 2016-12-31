@@ -73,5 +73,6 @@ is using the library in order to run those other applications.
   accept your thanks, gratitude, pizza, or bitcoin.  My bitcoin wallet address
   can be on [Keybase](https://keybase.io/nugget).  Or, I'll be nearly as
   thrilled (really) if you donate to [the
-  ACLU](https://action.aclu.org/donate-aclu), or
-  [EFF](https://supporters.eff.org/donate/) and you let me know that you did.
+  ACLU](https://action.aclu.org/donate-aclu),
+  [EFF](https://supporters.eff.org/donate/), or [EPIC](https://epic.org) and
+  let me know that you did.
