@@ -54,3 +54,24 @@ is using the library in order to run those other applications.
 - This pacakge was written by David McNett.
   - https://github.com/nugget
   - https://keybase.io/nugget
+
+## How can you help?
+
+- First and foremost, you can help by forking this project and coding.  Features,
+  bug fixes, documentation, and sample code will all add tremendously to the
+  quality of this project.
+
+- If you have a feature you'd love to see added to the project but you don't
+  think that you're able to do the work, I'm someone is probably happy to
+  perform the directed development in the form of a bug or feature bounty.
+
+- If your anxious for a feature but it's not actually worth money to you,
+  please open an issue here on Github describing the problem or limitation.  If
+  you never ask, it'll never happen
+
+- If you just want to thank me for the work I've already done, I'm happy to
+  accept your thanks, gratitude, pizza, or bitcoin.  My bitcoin wallet address
+  can be on [Keybase](https://keybase.io/nugget).  Or, I'll be nearly as
+  thrilled (really) if you donate to [the
+  ACLU](https://action.aclu.org/donate-aclu), or
+  [EFF](https://supporters.eff.org/donate/) and you let me know that you did.
