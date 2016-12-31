@@ -6,3 +6,6 @@ python:
 
 install:
     - "pip install ."
+    - "pip install asyncio"
+
+script: ./tests/fulltests.py
