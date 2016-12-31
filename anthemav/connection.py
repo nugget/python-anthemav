@@ -58,7 +58,7 @@ class Connection:
     def _reconnect(self):
         while True:
             try:
-                self.log.info('Connecting to AVR')
+                self.log.info("Connecting to Anthem AVR at %s:%d" % (self.host, self.port))
                 yield from self._loop.create_connection(lambda: self.protocol, self.host, self.port)
                 self._reset_retry_interval()
                 return

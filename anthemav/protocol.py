@@ -8,12 +8,15 @@ try:
 except AttributeError:
     ensure_future = asyncio.async
 
-ATTRIBUTES = { 'Z1VOL', 'Z1POW', 'IDM', 'IDS', 'IDR', 'IDB', 'IDH', 'IDN',
-        'Z1VIR', 'Z1MUT', 'ICN', 'Z1INP', 'FPB'}
+# These properties apply even when the AVR is powered off
+ATTR_CORE = {'Z1POW', 'IDM'}
+ATTR_MORE = {'Z1POW', 'IDM', 'Z1VOL', 'IDS', 'IDR', 'IDB', 'IDH', 'IDN', 'Z1VIR', 'Z1MUT', 'ICN', 'Z1INP'}
 
 LOOKUP = {}
 
-LOOKUP['FPB'] = {'description': 'Front Panel Brightness',
+LOOKUP['Z1POW'] = {'description': 'Zone 1 Power',
+        '0': 'Off', '1': 'On'}
+LOOKUP['FPB'] = {'description': 'Front Panel Brightness', 
         '0': 'Off', '1': 'Low', '2': 'Medium', '3': 'High'}
 LOOKUP['Z1VOL'] = {'description': 'Zone 1 Volume'}
 LOOKUP['IDR'] = {'description': 'Region'}
@@ -24,8 +27,6 @@ LOOKUP['IDN'] = {'description': 'MAC address'}
 LOOKUP['ECH'] = {'description': 'Tx status',
         '0': 'Off', '1': 'On'}
 LOOKUP['SIP'] = {'description': 'Standby IP control',
-        '0': 'Off', '1': 'On'}
-LOOKUP['Z1POW'] = {'description': 'Zone 1 Power',
         '0': 'Off', '1': 'On'}
 LOOKUP['ICN'] = {'description': 'Active input count'}
 LOOKUP['Z1INP'] = {'description': 'Zone 1 current input'}
@@ -64,26 +65,31 @@ LOOKUP['Z1DIA'] = {'description': 'Dolby digital dialog normalization (dB)'}
 
 class AnthemProtocol(asyncio.Protocol):
     def __init__(self, update_callback=None, loop=None, connection_lost_callback=None):
-        self.loop = loop 
+        self._loop = loop 
         self.log = logging.getLogger(__name__)
         self._connection_lost_callback = connection_lost_callback
         self._update_callback = update_callback
         self.buffer = ''
-        self.retry = 10
         self._input_names = {}
         self._input_numbers = {}
 
-        for key in ATTRIBUTES:
+        for key in LOOKUP.keys():
             setattr(self, '_'+key, "")
 
+        self._Z1POW = '0'
+
+    def refresh_core(self):
+        for key in ATTR_CORE:
+            self.query(key)
+
     def refresh_all(self):
-        for key in ATTRIBUTES:
+        for key in ATTR_MORE:
             self.query(key)
 
     def connection_made(self, transport):
-        self.log.info('connection_made')
+        self.log.info('Connection established to AVR')
         self.transport = transport
-        self.refresh_all()
+        self.refresh_core()
 
     def data_received(self, data):
         self.buffer += data.decode()
@@ -123,48 +129,58 @@ class AnthemProtocol(asyncio.Protocol):
             self.query('ISN'+str(input_number).zfill(2))
 
     def parse_message(self,data):
-        for key in ATTRIBUTES:
-            if data.startswith(key):
-                value = data[len(key):]
+        recognized = False
 
-                if key in LOOKUP:
-                    if 'description' in LOOKUP[key]:
-                        if value in LOOKUP[key]:
-                            self.log.info("Update: %s (%s) -> %s (%s)" % (LOOKUP[key]['description'], key, LOOKUP[key][value], value))
-                        else:
-                            self.log.info("Update: %s (%s) -> %s" % (LOOKUP[key]['description'], key, value))
-                else:
-                    self.log.info("Update: %s -> %s" % (key, value))
+        if data.startswith('!I'):
+            self.log.warn("Invalid command: %s" % data)
+        elif data.startswith('!R'):
+            self.log.warn("Out-of-range command: %s" % data)
+        elif data.startswith('!E'):
+            self.log.warn("Cannot execute command: %s" % data)
+        elif data.startswith('!Z'):
+            self.log.warn("Ignoring command for powered-off zone: %s" % data)
+        else:
 
-                oldvalue = getattr(self, '_'+key)
-                setattr(self, '_'+key, value)
+            for key in LOOKUP.keys():
+                if data.startswith(key):
+                    recognized = True
 
-                if key == 'Z1POW' and value == '1' and oldvalue == '0':
-                    self.refresh_all()
+                    value = data[len(key):]
 
-                if self._update_callback:
-                    self._update_callback(data)
+                    if key in LOOKUP:
+                        if 'description' in LOOKUP[key]:
+                            if value in LOOKUP[key]:
+                                self.log.info("Update: %s (%s) -> %s (%s)" % (LOOKUP[key]['description'], key, LOOKUP[key][value], value))
+                            else:
+                                self.log.info("Update: %s (%s) -> %s" % (LOOKUP[key]['description'], key, value))
+                    else:
+                        self.log.info("Update: %s -> %s" % (key, value))
 
-                break
+                    oldvalue = getattr(self, '_'+key)
+                    setattr(self, '_'+key, value)
+
+                    if key == 'Z1POW' and value == '1' and oldvalue == '0':
+                        self.log.info('Power on detected, refreshing all attributes')
+                        self.refresh_all()
+
+                    break
 
         if data.startswith('ICN'):
             self.populate_inputs(int(value))
 
         if data.startswith('ISN'):
+            recognized = True
             input_number = int(data[3:5])
             value = data[5:]
             self._input_numbers[value] = input_number
             self._input_names[input_number] = value
+            self.log.info("Input %d is called %s" % (input_number, value))
 
-        # I was using this for debugging/forensics
-        # self.log.warn(self.dump_rawdata)
-        
-
-    def ping(self):
-        self.log.info('Request to Ping')
-        message = 'Z1POW?;'
-        self.transport.write(message.encode())
-
+        if recognized:
+            if self._update_callback:
+                self._update_callback(data)
+        else:
+            self.log.warn("Unrecognized response: %s" % data)
 
     def query(self,message):
         message = message+'?'
