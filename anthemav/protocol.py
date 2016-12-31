@@ -8,7 +8,59 @@ try:
 except AttributeError:
     ensure_future = asyncio.async
 
-ATTRIBUTES = { 'Z1VOL', 'Z1POW', 'IDM', 'IDS', 'IDR', 'IDB', 'IDH', 'IDN', 'Z1VIR', 'Z1MUT', 'ICN', 'Z1INP'}
+ATTRIBUTES = { 'Z1VOL', 'Z1POW', 'IDM', 'IDS', 'IDR', 'IDB', 'IDH', 'IDN',
+        'Z1VIR', 'Z1MUT', 'ICN', 'Z1INP', 'FPB'}
+
+LOOKUP = {}
+
+LOOKUP['FPB'] = {'description': 'Front Panel Brightness',
+        '0': 'Off', '1': 'Low', '2': 'Medium', '3': 'High'}
+LOOKUP['Z1VOL'] = {'description': 'Zone 1 Volume'}
+LOOKUP['IDR'] = {'description': 'Region'}
+LOOKUP['IDM'] = {'description': 'Model'}
+LOOKUP['IDB'] = {'description': 'Software build date'}
+LOOKUP['IDH'] = {'description': 'Hardware version'}
+LOOKUP['IDN'] = {'description': 'MAC address'}
+LOOKUP['ECH'] = {'description': 'Tx status',
+        '0': 'Off', '1': 'On'}
+LOOKUP['SIP'] = {'description': 'Standby IP control',
+        '0': 'Off', '1': 'On'}
+LOOKUP['Z1POW'] = {'description': 'Zone 1 Power',
+        '0': 'Off', '1': 'On'}
+LOOKUP['ICN'] = {'description': 'Active input count'}
+LOOKUP['Z1INP'] = {'description': 'Zone 1 current input'}
+LOOKUP['Z1MUT'] = {'description': 'Zone 1 mute',
+        '0': 'Unmuted', '1': 'Muted'}
+LOOKUP['Z1ARC'] = {'description': 'Zone 1 ARC',
+        '0': 'Off', '1': 'On'}
+LOOKUP['Z1VIR'] = {'description': 'Video input resolution',
+        '0': 'No input', '1': 'Other', '2': '1080p60', '3': '1080p50',
+        '4': '1080p24', '5': '1080i60', '6': '1080i50', '7': '720p60',
+        '8': '720p50', '9': '576p50', '10': '576i50', '11': '480p60',
+        '12': '480i60', '13': '3D', '14': '4K'}
+LOOKUP['Z1IRH'] = {'description': 'Active horizontal video resolution (pixels)'}
+LOOKUP['Z1IRV'] = {'description': 'Active vertical video resolution (pixels)'}
+LOOKUP['Z1AIC'] = {'description': 'Audio input channels',
+        '0': 'No input', '1': 'Other', '2': 'Mono (center channel only)',
+        '3': '2 channel', '4': '5.1 channel', '5': '6.1 channel',
+        '6': '7.1 channel', '7': 'Atmos'}
+LOOKUP['Z1AIF'] = {'description': 'Audio input format',
+        '0': 'No input', '1': 'Analog', '2': 'PCM', '3': 'Dolby', '4': 'DSD',
+        '5': 'DTS', '6': 'Atmos'}
+LOOKUP['Z1BRT'] = {'description': 'Audio input bitrate (kbps)'}
+LOOKUP['Z1SRT'] = {'description': 'Audio input sampling rate (hKz)'}
+LOOKUP['Z1AIN'] = {'description': 'Audio input name'}
+LOOKUP['Z1AIR'] = {'description': 'Audio input rate name'}
+LOOKUP['Z1ALM'] = {'description': 'Audio listening mode',
+        '00': 'None', '01': 'AnthemLogic Movie', '02': 'AnthemLogic Music',
+        '03': 'PLIIx Movie', '04': 'PLIIx Music', '05': 'Neo:6 Cinema',
+        '06': 'Neo:6 Music', '07': 'All Channel Stereo',
+        '08': 'All Channel Mono', '09': 'Mono', '10': 'Mono-Academy',
+        '11': 'Mono (L)', '12': 'Mono (R)', '13': 'High Blend',
+        '14': 'Dolby Surround', '15': 'Neo:X Cinema', '16': 'Neo:X Music'}
+LOOKUP['Z1DYN'] = {'description': 'Dolby digital dynamic range',
+        '0': 'Normal', '1': 'Reduced', '2': 'Late Night'}
+LOOKUP['Z1DIA'] = {'description': 'Dolby digital dialog normalization (dB)'}
 
 class AnthemProtocol(asyncio.Protocol):
     def __init__(self, update_callback=None, loop=None, connection_lost_callback=None):
@@ -74,12 +126,24 @@ class AnthemProtocol(asyncio.Protocol):
         for key in ATTRIBUTES:
             if data.startswith(key):
                 value = data[len(key):]
-                self.log.info('Received value for '+key+': '+value)
+
+                if key in LOOKUP:
+                    if 'description' in LOOKUP[key]:
+                        if value in LOOKUP[key]:
+                            self.log.info("Update: %s (%s) -> %s (%s)" % (LOOKUP[key]['description'], key, LOOKUP[key][value], value))
+                        else:
+                            self.log.info("Update: %s (%s) -> %s" % (LOOKUP[key]['description'], key, value))
+                else:
+                    self.log.info("Update: %s -> %s" % (key, value))
+
                 oldvalue = getattr(self, '_'+key)
                 setattr(self, '_'+key, value)
 
-                if key == 'Z1POW' and value == '1' and oldvalue != value:
+                if key == 'Z1POW' and value == '1' and oldvalue == '0':
                     self.refresh_all()
+
+                if self._update_callback:
+                    self._update_callback(data)
 
                 break
 
@@ -95,8 +159,6 @@ class AnthemProtocol(asyncio.Protocol):
         # I was using this for debugging/forensics
         # self.log.warn(self.dump_rawdata)
         
-        if self._update_callback:
-            self._update_callback(data)
 
     def ping(self):
         self.log.info('Request to Ping')
@@ -113,9 +175,11 @@ class AnthemProtocol(asyncio.Protocol):
         self.raw_command(message)
 
     def raw_command(self,message):
+        message = message
         message = message.encode()
 
         if hasattr(self, 'transport'):
+            self.log.debug("> %s" % message)
             self.transport.write(message)
         else:
             self.log.warn('No transport found, unable to send command')
