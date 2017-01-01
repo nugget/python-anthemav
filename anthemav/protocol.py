@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import time
 
 # In Python 3.4.4, `async` was renamed to `ensure_future`.
 try:
@@ -100,7 +101,6 @@ class AnthemProtocol(asyncio.Protocol):
         for key in ATTR_CORE:
             self.query(key)
 
-
     def refresh_all(self):
         """Query device for all attributes that are known
 
@@ -121,7 +121,7 @@ class AnthemProtocol(asyncio.Protocol):
         self.log.info('Connection established to AVR')
         self.transport = transport
 
-        self.transport.set_write_buffer_limits(128)
+        self.transport.set_write_buffer_limits(0)
         limit_low,limit_high = self.transport.get_write_buffer_limits()
         self.log.debug("Write buffer limits %d to %d" % (limit_low, limit_high))
 
@@ -130,7 +130,7 @@ class AnthemProtocol(asyncio.Protocol):
 
     def data_received(self, data):
         self.buffer += data.decode()
-        self.log.debug('Data received: {!r}'.format(data.decode()))
+        self.log.debug("Received %d bytes from AVR: %s",len(self.buffer),self.buffer)
         self._assemble_buffer()
 
     def connection_lost(self, exc):
@@ -322,6 +322,7 @@ class AnthemProtocol(asyncio.Protocol):
         if hasattr(self, 'transport'):
             self.log.debug("> %s" % command)
             self.transport.write(command)
+            time.sleep(0.01)
         else:
             self.log.warn('No transport found, unable to send command')
 
