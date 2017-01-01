@@ -319,11 +319,11 @@ class AnthemProtocol(asyncio.Protocol):
         command = command
         command = command.encode()
 
-        if hasattr(self, 'transport'):
-            self.log.debug("> %s" % command)
+        self.log.debug("> %s" % command)
+        try:
             self.transport.write(command)
             time.sleep(0.01)
-        else:
+        except:
             self.log.warn('No transport found, unable to send command')
 
     # 
