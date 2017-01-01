@@ -10,6 +10,9 @@ except:
     print('Skipping md->rst conversion for long_description')
     long_description = 'Error converting Markdown from git repo'
 
+if len(long_description) < 100:
+    print("\n***\n***\nWARNING: %s\n***\n***\n" % long_description)
+
 setup(
     name='anthemav',
     version='1.1.1',
