@@ -28,6 +28,7 @@ class Connection:
         conn._retry_interval = 1
         conn._closed = False
         conn._closing = False
+        conn._halted = False
         conn._auto_reconnect = auto_reconnect
 
         def connection_lost():
@@ -58,10 +59,14 @@ class Connection:
     def _reconnect(self):
         while True:
             try:
-                self.log.info("Connecting to Anthem AVR at %s:%d" % (self.host, self.port))
-                yield from self._loop.create_connection(lambda: self.protocol, self.host, self.port)
-                self._reset_retry_interval()
-                return
+                if self._halted:
+                    yield from asyncio.sleep(2, loop=self._loop)
+                else:
+                    self.log.info("Connecting to Anthem AVR at %s:%d" % (self.host, self.port))
+                    yield from self._loop.create_connection(lambda: self.protocol, self.host, self.port)
+                    self._reset_retry_interval()
+                    return
+
             except OSError:
                 self._increase_retry_interval()
                 interval = self._get_retry_interval()
@@ -69,10 +74,20 @@ class Connection:
                 yield from asyncio.sleep(interval, loop=self._loop)
 
     def close(self):
+        self.log.warn('Closing connection to AVR')
         self._closing = True
-
         if self.protocol.transport:
             self.protocol.transport.close()
+
+    def halt(self):
+        self.log.warn('Halting connection to AVR')
+        self._halted = True
+        if self.protocol.transport:
+            self.protocol.transport.close()
+
+    def resume(self):
+        self.log.warn('Resuming connection to AVR')
+        self._halted = False
 
     @property
     def dump_conndata(self):
