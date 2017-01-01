@@ -102,8 +102,7 @@ class AnthemProtocol(asyncio.Protocol):
         if exc is None:
             self.log.warn('eof from receiver?')
         else:
-            self.log.warn("Lost connection to %s" % exc)
-            self._reader.set_exception(exc)
+            self.log.warn("Lost connection to receiver: %s" % exc)
 
         self._is_connected = False
         self.transport = None
