@@ -53,15 +53,17 @@ number that matches your receiver and its configured port:
 
     anthemav_monitor --host 10.0.0.100 --port 14999
 
-## Related Links
+## Interesting Links
 
+- [Project Home](https://github.com/nugget/python-anthemav)
 - [API Documentation for Anthem Network
   Protocol](http://www.anthemav.com/downloads/MRX-x20-AVM-60-IP-RS-232.xls)
   (Excel Spreadsheet)
+- [Pictures of cats](http://imgur.com/r/cats)
 
 ## Credits
 
-- This pacakge was written by David McNett.
+- This package was written by David McNett.
   - https://github.com/nugget
   - https://keybase.io/nugget
 
