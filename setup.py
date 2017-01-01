@@ -1,24 +1,26 @@
 #!/usr/bin/env python
 
-import re
-from setuptools import setup, find_packages
+from setuptools import setup
 import sys
-import warnings
 
-dynamic_requires = []
-
-version = 1.1
+try:
+    import pypandoc
+    long_description = pypandoc.convert('README.md', 'rst')
+except:
+    print('Skipping md->rst conversion for long_description')
+    long_description = 'Error converting Markdown from git repo'
 
 setup(
     name='anthemav',
-    version=1.1,
+    version='1.1.1',
     author='David McNett',
     author_email='nugget@macnugget.org',
     url='https://github.com/nugget/python-anthemav',
-    packages=find_packages(),
+    license="LICENSE",
+    packages=['anthemav'],
     scripts=[],
-    install_requires=['asyncio'],
     description='Python API for controlling Anthem Receivers',
+    long_description=long_description,
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
@@ -29,4 +31,8 @@ setup(
     ],
     include_package_data=True,
     zip_safe=True,
+
+    entry_points={
+        'console_scripts': [ 'anthemav_monitor = anthemav.tools:monitor', ]
+    }
 )
