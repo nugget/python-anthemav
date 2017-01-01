@@ -1,6 +1,5 @@
 import asyncio
 import logging
-from functools import partial
 
 # In Python 3.4.4, `async` was renamed to `ensure_future`.
 try:
@@ -10,8 +9,6 @@ except AttributeError:
 
 # These properties apply even when the AVR is powered off
 ATTR_CORE = {'Z1POW', 'IDM'}
-ATTR_MORE = {'Z1POW', 'IDM', 'Z1VOL', 'IDS', 'IDR', 'IDB', 'IDH', 'IDN',
-        'Z1VIR', 'Z1MUT', 'ICN', 'Z1INP', 'FPB'}
 
 LOOKUP = {}
 
@@ -91,6 +88,11 @@ class AnthemProtocol(asyncio.Protocol):
     def connection_made(self, transport):
         self.log.info('Connection established to AVR')
         self.transport = transport
+
+        self.transport.set_write_buffer_limits(64)
+        limit_low,limit_high = self.transport.get_write_buffer_limits()
+        self.log.debug("Write buffer limits %d to %d" % (limit_low, limit_high))
+
         self.refresh_core()
 
     def data_received(self, data):
