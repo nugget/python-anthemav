@@ -25,10 +25,8 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
+        'Topic :: Software Development :: Libraries :: Python Modules',
     ],
     include_package_data=True,
     zip_safe=True,
-    entry_points = {
-        'console_scripts': ['anthemav_console=anthemav.__main__:console']
-    },
 )
