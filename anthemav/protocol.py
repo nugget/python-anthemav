@@ -63,6 +63,16 @@ LOOKUP['Z1DYN'] = {'description': 'Dolby digital dynamic range',
 LOOKUP['Z1DIA'] = {'description': 'Dolby digital dialog normalization (dB)'}
 
 class AnthemProtocol(asyncio.Protocol):
+    """The Athem AVR IP control protocol handler
+
+    This is the protocol handler that handles all status updates and command
+    issuances to the device.  It is expected to be wrapped inside a Connection
+    class object which will maintain the socket and handle auto-reconnects.
+
+        :param update_callback: (optional) called if any state information changes in device
+        :param connection_lost_callback: (optional) called when connection is lost to device
+        :param loop: (optional) asyncio event loop
+    """
     def __init__(self, update_callback=None, loop=None, connection_lost_callback=None):
         self._loop = loop 
         self.log = logging.getLogger(__name__)
@@ -78,13 +88,34 @@ class AnthemProtocol(asyncio.Protocol):
         self._Z1POW = '0'
 
     def refresh_core(self):
-        self.log.warn('refresh_core')
+        """Query device for all attributes that exist regardless of power state
+
+        This will force a refresh for all device queries that are valid to
+        request at any time.  It's the only safe suite of queries that we can 
+        make if we do not know the current state (on or off+standby).
+
+        This does not return any data, it just issues the queries.
+        """
+        self.log.info('refresh_core')
         for key in ATTR_CORE:
             self.query(key)
 
+
     def refresh_all(self):
+        """Query device for all attributes that are known
+
+        This will force a refresh for all device queries that the module is 
+        aware of.  In theory, this will completely populate the internal state
+        table for all attributes.
+
+        This does not return any data, it just issues the queries.
+        """
         for key in LOOKUP.keys():
             self.query(key)
+
+    #
+    # asyncio network functions
+    #
 
     def connection_made(self, transport):
         self.log.info('Connection established to AVR')
@@ -99,7 +130,7 @@ class AnthemProtocol(asyncio.Protocol):
     def data_received(self, data):
         self.buffer += data.decode()
         self.log.debug('Data received: {!r}'.format(data.decode()))
-        self.assemble_buffer()
+        self._assemble_buffer()
 
     def connection_lost(self, exc):
         if exc is None:
@@ -114,25 +145,45 @@ class AnthemProtocol(asyncio.Protocol):
             self._connection_lost_callback()
 
 
-    def assemble_buffer(self):
+    def _assemble_buffer(self):
+        """Split up received data from device into individual commands
+
+        Data sent by the device is a sequence of datagrams separated by 
+        semicolons.  It's common to receive a burst of them all in one
+        submission when there's a lot of device activity.  This function
+        disassembles the chain of datagrams into individual messages which
+        are then passed on for interpretation.
+        """
         self.transport.pause_reading()
 
         for message in self.buffer.split(';'):
             if message != '':
                 self.log.debug('assembled message '+message)
-                self.parse_message(message)
+                self._parse_message(message)
 
         self.buffer = ""
 
         self.transport.resume_reading()
         return
 
-    def populate_inputs(self,total):
+    def _populate_inputs(self,total):
+        """Request the names for all active, configured inputs on the device
+
+        Once we learn how many inputs are configured, this function is called
+        which will ask for the name of each active input.
+        """
         total = total + 1
         for input_number in range(1,total):
             self.query('ISN'+str(input_number).zfill(2))
 
-    def parse_message(self,data):
+    def _parse_message(self,data):
+        """Interpret each message datagram from device and do the needful
+
+        This function receives datagrams from _assemble_buffer and inerprets 
+        what they mean.  It's responsible for maintaining the internal state
+        table for each device attribute and also for firing the update_callback
+        function (if one was supplied)
+        """
         recognized = False
         newdata = False
 
@@ -182,7 +233,7 @@ class AnthemProtocol(asyncio.Protocol):
 
         if data.startswith('ICN'):
             recognized = True
-            self.populate_inputs(int(value))
+            self._populate_inputs(int(value))
 
         if data.startswith('ISN'):
             recognized = True
@@ -205,21 +256,71 @@ class AnthemProtocol(asyncio.Protocol):
         if not recognized:
             self.log.warn("Unrecognized response: %s" % data)
 
-    def query(self,message):
-        message = message+'?'
-        self.command(message)
+    def query(self,item):
+        """Issue a raw query to the device for an item
 
-    def command(self,message):
-        message = message+';'
-        self.raw_command(message)
+        This function is used to request that the device supply the current
+        state for a data item as described in the Anthem IP protocoal API.
+        Normal interaction with this module will not require you to make raw
+        device queries with this function, but the method is exposed in case
+        there's a need that's not otherwise met by the abstraction methods
+        defined elsewhere.
 
-    def raw_command(self,message):
-        message = message
-        message = message.encode()
+        This function does not return the result, it merely issues the request.
+
+            :param item: Any of the data items from the API
+            :type item: str
+
+        :Example:
+
+        >>> query('Z1VOL')
+
+        """
+        item = item+'?'
+        self.command(item)
+
+    def command(self,command):
+        """Issue a raw command to the device 
+
+        This function is used to update a data item on the device.  It's used
+        to cause activity or change the configuration of the AVR.  Normal
+        interaction with this module will not require you to make raw device
+        queries with this function, but the method is exposed in case there's a
+        need that's not otherwise met by the abstraction methods defined
+        elsewhere.
+
+            :param command: Any command as documented in the Anthem API
+            :type command: str
+
+        :Example:
+
+        >>> command('Z1VOL-50')
+        """
+        command = command+';'
+        self.formatted_command(command)
+
+    def formatted_command(self,command):
+        """Issue a raw, formatted command to the device 
+
+        This function is invoked by both query and command and is the point
+        where we actually send bytes out over the network.  This function does
+        the wrapping and formatting required by the Anthem API so that the
+        higher-level function can just operate with regular strings without 
+        the burden of byte encoding and terminating device requests.
+
+            :param command: Any command as documented in the Anthem API
+            :type command: str
+
+        :Example:
+
+        >>> formatted_command('Z1VOL-50')
+        """
+        command = command
+        command = command.encode()
 
         if hasattr(self, 'transport'):
-            self.log.debug("> %s" % message)
-            self.transport.write(message)
+            self.log.debug("> %s" % command)
+            self.transport.write(command)
         else:
             self.log.warn('No transport found, unable to send command')
 
