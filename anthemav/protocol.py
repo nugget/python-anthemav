@@ -125,6 +125,7 @@ class AnthemProtocol(asyncio.Protocol):
         limit_low,limit_high = self.transport.get_write_buffer_limits()
         self.log.debug("Write buffer limits %d to %d" % (limit_low, limit_high))
 
+        self.command('ECH1')
         self.refresh_core()
 
     def data_received(self, data):
@@ -337,12 +338,32 @@ class AnthemProtocol(asyncio.Protocol):
     #
 
     def attenuation_to_volume(self,value):
+        """Convert a native attenuation value to a volume value
+
+        Takes an attenuation in dB from the Anthem (-90 to 0) and converts it
+        into a normal volume value (0-100).
+
+            :param arg1: attenuation in dB (negative integer from -90 to 0)
+            :type arg1: int
+
+        returns an integer value representing volume
+        """
         try:
             return round((90.00 + int(value)) / 90 * 100) 
         except:
             return 0
 
     def volume_to_attenuation(self,value):
+        """Convert a volume value to a native attenuation value
+
+        Takes a volume value and turns it into an attenuation value suitable
+        to send to the Anthem AVR.
+
+            :param arg1: volume (integer from 0 to 100)
+            :type arg1: int
+
+        returns a negative integer value representing attenuation in dB
+        """
         try:
             return round((value / 100) * 90) - 90
         except:
@@ -351,8 +372,18 @@ class AnthemProtocol(asyncio.Protocol):
  
     @property
     def attenuation(self):
+        """Current attenuation (read/write)
+
+        You can get or set the current attenuation value on the device with this
+        property.  Valid range from -90 to 0.
+
+        :Examples:
+        
+        >>> attvalue = attenuation
+        >>> attenuation = -50
+        """
         try:
-            return int(self._Z1VOL) 
+            return int(self._Z1VOL)
         except:
             return -90
 
@@ -364,6 +395,16 @@ class AnthemProtocol(asyncio.Protocol):
 
     @property
     def volume(self):
+        """Current volume (read/write)
+
+        You can get or set the current volume value on the device with this
+        property.  Valid range from 0 to 100.
+
+        :Examples:
+        
+        >>> volvalue = volume
+        >>> volume = 20
+        """
         return self.attenuation_to_volume(self.attenuation)
 
     @volume.setter
@@ -373,6 +414,16 @@ class AnthemProtocol(asyncio.Protocol):
 
     @property
     def volume_as_percentage(self):
+        """Current volume as percentage (read/write)
+
+        You can get or set the current volume value as a percentage.  Valid
+        range from 0 to 1 (float).  
+
+        :Examples:
+        
+        >>> volper = volume_as_percentage
+        >>> volume_as_percentage = 0.20
+        """
         vp = self.volume / 100
         return vp
 
@@ -412,6 +463,8 @@ class AnthemProtocol(asyncio.Protocol):
 
     @property
     def power(self):
+        """Current state of the device power (read/write)"""
+
         return self._get_boolean('Z1POW')
 
     @power.setter
@@ -421,6 +474,19 @@ class AnthemProtocol(asyncio.Protocol):
 
     @property
     def txstatus(self):
+        """Current TX Status of the device (read/write)
+       
+        When enabled, all commands, status changes, and control information 
+        are reported through the Ethernet and RS-232 connections.  Do not
+        disable this setting, the anthemav pacakge requires it.
+        
+        It is explicitly set to True whenever this module connects to the AVR,
+        but I'll still let you disable it though, because I believe in aiming
+        loaded guns right at my own feet. 
+
+            :param arg1: setting
+            :type arg1: boolean
+        """ 
         return self._get_boolean('ECH')
 
     @txstatus.setter
@@ -430,6 +496,16 @@ class AnthemProtocol(asyncio.Protocol):
 
     @property
     def standby_control(self):
+        """Current Standby IP Control of the device (read/write)
+      
+        When disabled, the AVM/MRX goes into a low-consumption standby mode and
+        does not sense IP commands while in it. To make it respond to a
+        power-on command or to keep DTS Play-Fi connected to the network so it
+        can be used immediately after power- on, enable this setting. 
+        
+            :param arg1: setting
+            :type arg1: boolean
+        """ 
         return self._get_boolean('SIP')
     
     @standby_control.setter
@@ -439,6 +515,8 @@ class AnthemProtocol(asyncio.Protocol):
 
     @property
     def arc(self):
+        """Current ARC (Anthem Room Correction) on or off (read/write)"""
+        return self._get_boolean('SIP')
         return self._get_boolean('Z1ARC')
 
     @arc.setter
@@ -448,12 +526,12 @@ class AnthemProtocol(asyncio.Protocol):
     
     @property
     def mute(self):
+        """Mute on or off (read/write)"""
         self._get_boolean('Z1MUT')
 
     @mute.setter
     def mute(self,value):
         self._set_boolean('Z1MUT',value)
-
 
 
     #
@@ -462,34 +540,42 @@ class AnthemProtocol(asyncio.Protocol):
 
     @property
     def model(self):
+        """Device Model Name (read-only)"""
         return self._IDM or "Unknown Model"
 
     @property
     def swversion(self):
+        """Software version (read-only)"""
         return self._IDS or "Unknown Version"
 
     @property
     def region(self):
+        """Region (read-only)"""
         return self._IDR or "Unknown Region"
 
     @property
     def build_date(self):
+        """Software build date (read-only)"""
         return self._IDB or "Unknown Build Date"
 
     @property
     def hwversion(self):
+        """Hardware version (read-only)"""
         return self._IDH or "Unknown Version"
 
     @property
     def macaddress(self):
+        """Network MCU MAC address (read-only)"""
         return self._IDN or "00:00:00:00:00:00"
 
     @property
     def audio_input_name(self):
+        """Current audio input format short description (read-only)"""
         return self._Z1AIN or "Unknown"
 
     @property
     def audio_input_ratename(self):
+        """Current audio input format sample or bit rate (read-only)"""
         return self._Z1AIR or "Unknown"
 
 
@@ -508,22 +594,34 @@ class AnthemProtocol(asyncio.Protocol):
 
     @property
     def dolby_dialog_normalization(self):
+        """Query Dolby Digital dialog normalization amount (read-only)
+
+        Returns value in dB of normalization (if applicable).
+        """
         return self._get_integer('Z1DIA')
 
     @property
     def horizontal_resolution(self):
+        """Query active horizontal video resolution (in pixels)"""
         return self._get_integer('Z1IRH')
 
     @property
     def vertical_resolution(self):
+        """Query active vertical video resolution (in pixels)"""
         return self._get_integer('Z1IRV')
 
     @property
     def audio_input_bitrate(self):
+        """Query audio input bitrate (in kbps)
+
+        For Analog/PCM inputs this is equal to the sample rate multiplied by
+        the bit depth and the number of channels
+        """
         return self._get_integer('Z1BRT')
 
     @property
     def audio_input_samplerate(self):
+        """Query audio input sampling rate (kHz)"""
         return self._get_integer('Z1SRT')
 
 
@@ -555,10 +653,15 @@ class AnthemProtocol(asyncio.Protocol):
     #
     @property
     def panel_brightness(self):
+        """Current front panel brightness value (int 0-3) (read-write)
+
+        0=off, 1=low, 2=medium, 3=high
+        """
         return self._get_multiprop('FPB', mode='raw')
 
     @property
     def panel_brightness_text(self):
+        """Current front panel brighness value (str) (read-only)"""
         return self._get_multiprop('FPB', mode='text')
 
     @panel_brightness.setter
@@ -571,10 +674,22 @@ class AnthemProtocol(asyncio.Protocol):
 
     @property
     def audio_listening_mode(self):
+        """Current audio listening mode (00-16) (read-write)
+
+        Audio Listening Mode: 00=None, 01=AnthemLogic-Movie,
+        02=AnthemLogic-Music, 03=PLIIx Movie, 04=PLIIx Music, 05=Neo:6 Cinema,
+        06=Neo:6 Music, 07=All Channel Stereo*, 08=All-Channel Mono*, 09=Mono*,
+        10=Mono-Academy*, 11=Mono(L)*, 12=Mono(R)*, 13=High Blend*, 14=Dolby
+        Surround, 15=Neo:X-Cinema, 16=Neo:X-Music, na=cycle to next applicable,
+        pa=cycle to previous applicable.  *Applicable to 2-channel source only.
+        Some options are not available in all models or under all
+        circumstances.
+        """   
         return self._get_multiprop('Z1ALM', mode='raw')
 
     @property
     def audio_listening_mode_text(self):
+        """Current audio listening mode (str) (read-only)"""
         return self._get_multiprop('Z1ALM', mode='text')
 
     @audio_listening_mode.setter
@@ -587,10 +702,17 @@ class AnthemProtocol(asyncio.Protocol):
 
     @property
     def dolby_dynamic_range(self):
+        """Current Dolby Dynamic Range setting (0-2) (read-write)
+
+        Applies to Dolby Digital 5.1 source only.
+
+        0=Normal, 1=Reduced, 2=Late Night.
+        """
         return self._get_multiprop('Z1DYN', mode='raw')
 
     @property
     def dolby_dynamic_range_text(self):
+        """Current Dolby Dynamic Range setting (str) (read-only)"""
         return self._get_multiprop('Z1DYN', mode='text')
 
     @dolby_dynamic_range.setter
@@ -607,26 +729,44 @@ class AnthemProtocol(asyncio.Protocol):
 
     @property
     def video_input_resolution(self):
+        """Current video input resolution (0-14) (read-only)
+
+        0=no input, 1=other, 2=1080p60, 3=1080p50, 4=1080p24, 5=1080i60,
+        6=1080i50, 7=720p60, 8=720p50, 9=576p50, 10=576i50, 11=480p60,
+        12=480i60, 13=3D, 14=4k
+        """
         return self._get_multiprop('Z1VIR', mode='raw')
 
     @property
     def video_input_resolution_text(self):
+        """Current video input resolution (str) (read-only)"""
         return self._get_multiprop('Z1VIR', mode='text')
 
     @property
     def audio_input_channels(self):
+        """Current audio input channels (0-7) (read-only
+
+        0=no input, 1=other, 2=mono (center channel only), 3=2-channel,
+        4=5.1-channel, 5=6.1-channel, 6=7.1-channel, 7=Atmos
+        """
         return self._get_multiprop('Z1AIC', mode='raw')
 
     @property
     def audio_input_channels_text(self):
+        """Current audio input channels (str) (read-only)"""
         return self._get_multiprop('Z1AIC', mode='text')
 
     @property
     def audio_input_format(self):
+        """Current audio input format (0-6) (read-only)
+
+        0=no input, 1=Analog, 2=PCM, 3=Dolby, 4= DSD, 5=DTS, 6=Atmos.
+        """
         return self._get_multiprop('Z1AIF', mode='raw')
 
     @property
     def audio_input_format_text(self):
+        """Current audio input format (str) (read-only)"""
         return self._get_multiprop('Z1AIF', mode='text')
 
 
@@ -636,10 +776,12 @@ class AnthemProtocol(asyncio.Protocol):
  
     @property
     def input_list(self):
+        """List of all active inputs"""
         return list(self._input_numbers.keys())
 
     @property
     def input_name(self):
+        """Name of currently active input (read-write)"""
         return self._input_names.get(self.input_number, "Unknown")
 
     @input_name.setter
@@ -650,6 +792,7 @@ class AnthemProtocol(asyncio.Protocol):
 
     @property
     def input_number(self):
+        """Number of currently active input (read-write)"""
         return self._get_integer('Z1INP')
     
     @input_number.setter
