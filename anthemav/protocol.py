@@ -78,6 +78,7 @@ class AnthemProtocol(asyncio.Protocol):
         self._Z1POW = '0'
 
     def refresh_core(self):
+        self.log.warn('refresh_core')
         for key in ATTR_CORE:
             self.query(key)
 
@@ -133,15 +134,20 @@ class AnthemProtocol(asyncio.Protocol):
 
     def parse_message(self,data):
         recognized = False
+        newdata = False
 
         if data.startswith('!I'):
-            self.log.warn("Invalid command: %s" % data)
+            self.log.warn("Invalid command: %s" % data[2:])
+            recognized = True
         elif data.startswith('!R'):
-            self.log.warn("Out-of-range command: %s" % data)
+            self.log.warn("Out-of-range command: %s" % data[2:])
+            recognized = True
         elif data.startswith('!E'):
-            self.log.warn("Cannot execute command: %s" % data)
+            self.log.warn("Cannot execute recognized command: %s" % data[2:])
+            recognized = True
         elif data.startswith('!Z'):
-            self.log.warn("Ignoring command for powered-off zone: %s" % data)
+            self.log.warn("Ignoring command for powered-off zone: %s" % data[2:])
+            recognized = True
         else:
 
             for key in LOOKUP.keys():
@@ -149,17 +155,23 @@ class AnthemProtocol(asyncio.Protocol):
                     recognized = True
 
                     value = data[len(key):]
+                    oldvalue = getattr(self, '_'+key)
+                    if oldvalue != value:
+                        changeindicator = 'New Value'
+                        newdata = True
+                    else:
+                        changeindicator = 'Unchanged'
+
 
                     if key in LOOKUP:
                         if 'description' in LOOKUP[key]:
                             if value in LOOKUP[key]:
-                                self.log.info("Update: %s (%s) -> %s (%s)" % (LOOKUP[key]['description'], key, LOOKUP[key][value], value))
+                                self.log.info("%s: %s (%s) -> %s (%s)" % (changeindicator,LOOKUP[key]['description'], key, LOOKUP[key][value], value))
                             else:
-                                self.log.info("Update: %s (%s) -> %s" % (LOOKUP[key]['description'], key, value))
+                                self.log.info("%s: %s (%s) -> %s" % (changeindicator,LOOKUP[key]['description'], key, value))
                     else:
-                        self.log.info("Update: %s -> %s" % (key, value))
+                        self.log.info("%s: %s -> %s" % (changeindicator,key, value))
 
-                    oldvalue = getattr(self, '_'+key)
                     setattr(self, '_'+key, value)
 
                     if key == 'Z1POW' and value == '1' and oldvalue == '0':
@@ -169,21 +181,28 @@ class AnthemProtocol(asyncio.Protocol):
                     break
 
         if data.startswith('ICN'):
+            recognized = True
             self.populate_inputs(int(value))
 
         if data.startswith('ISN'):
             recognized = True
+
             input_number = int(data[3:5])
             value = data[5:]
-            self._input_numbers[value] = input_number
-            self._input_names[input_number] = value
-            self.log.info("Input %d is called %s" % (input_number, value))
 
-        if recognized:
+            oldname = self._input_names.get(input_number, '')
+
+            if oldname != value:
+                self._input_numbers[value] = input_number
+                self._input_names[input_number] = value
+                self.log.info("New Value: Input %d is called %s" % (input_number, value))
+                newdata = True
+
+        if newdata:
             if self._update_callback:
                 self._update_callback(data)
 
-        else:
+        if not recognized:
             self.log.warn("Unrecognized response: %s" % data)
 
     def query(self,message):
@@ -545,8 +564,9 @@ class AnthemProtocol(asyncio.Protocol):
 
     @property
     def dump_rawdata(self):
-        attrs = vars(self)
-        return(', '.join("%s: %s" % item for item in attrs.items()))
+        if hasattr(self, 'transport'):
+            attrs = vars(self.transport)
+            return(', '.join("%s: %s" % item for item in attrs.items()))
 
     @property
     def test_string(self):
