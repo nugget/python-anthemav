@@ -71,7 +71,10 @@ is using the library in order to run those other applications.
 
 - If you just want to thank me for the work I've already done, I'm happy to
   accept your thanks, gratitude, pizza, or bitcoin.  My bitcoin wallet address
-  can be on [Keybase](https://keybase.io/nugget).  Or, I'll be nearly as
+  can be on [Keybase](https://keybase.io/nugget) or you can send me a donation
+  via [PayPal](https://www.paypal.me/macnugget).
+  
+- Or, if you're not comfortable sending me money directly, I'll be nearly as
   thrilled (really) if you donate to [the
   ACLU](https://action.aclu.org/donate-aclu),
   [EFF](https://supporters.eff.org/donate/), or [EPIC](https://epic.org) and

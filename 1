@@ -10,8 +10,7 @@ except AttributeError:
 
 # These properties apply even when the AVR is powered off
 ATTR_CORE = {'Z1POW', 'IDM'}
-ATTR_MORE = {'Z1POW', 'IDM', 'Z1VOL', 'IDS', 'IDR', 'IDB', 'IDH', 'IDN',
-        'Z1VIR', 'Z1MUT', 'ICN', 'Z1INP', 'FPB'}
+ATTR_MORE = {'Z1POW', 'IDM', 'Z1VOL', 'IDS', 'IDR', 'IDB', 'IDH', 'IDN', 'Z1VIR', 'Z1MUT', 'ICN', 'Z1INP', 'FPB'}
 
 LOOKUP = {}
 
@@ -22,7 +21,6 @@ LOOKUP['FPB'] = {'description': 'Front Panel Brightness',
 LOOKUP['Z1VOL'] = {'description': 'Zone 1 Volume'}
 LOOKUP['IDR'] = {'description': 'Region'}
 LOOKUP['IDM'] = {'description': 'Model'}
-LOOKUP['IDS'] = {'description': 'Software version'}
 LOOKUP['IDB'] = {'description': 'Software build date'}
 LOOKUP['IDH'] = {'description': 'Hardware version'}
 LOOKUP['IDN'] = {'description': 'MAC address'}
@@ -85,7 +83,7 @@ class AnthemProtocol(asyncio.Protocol):
             self.query(key)
 
     def refresh_all(self):
-        for key in LOOKUP.keys():
+        for key in ATTR_MORE:
             self.query(key)
 
     def connection_made(self, transport):
@@ -407,9 +405,13 @@ class AnthemProtocol(asyncio.Protocol):
 
 
     #
-    # Helper functions for working with raw/text multi-property items
+    # Read/write properties with only raw option
     #
+
     #
+    # Read/write properties with raw and english options
+    #
+ 
     def _get_multiprop(self, key, mode='raw'):
         keyname = '_'+key
 
@@ -428,10 +430,6 @@ class AnthemProtocol(asyncio.Protocol):
         else:
             return
 
-    #
-    # Read/write properties with raw and text options
-    #
-    #
     @property
     def panel_brightness(self):
         return self._get_multiprop('FPB', mode='raw')
@@ -439,50 +437,6 @@ class AnthemProtocol(asyncio.Protocol):
     @property
     def panel_brightness_text(self):
         return self._get_multiprop('FPB', mode='text')
-
-    @panel_brightness.setter
-    def panel_brightness(self,number):
-        if isinstance(number, int):
-            if 0 <= number <= 3:
-                self.log.info('Switching panel brightness to '+str(number))
-                self.command('FPB'+str(number))
-
-
-    @property
-    def audio_listening_mode(self):
-        return self._get_multiprop('Z1ALM', mode='raw')
-
-    @property
-    def audio_listening_mode_text(self):
-        return self._get_multiprop('Z1ALM', mode='text')
-
-    @audio_listening_mode.setter
-    def audio_listening_mode(self,number):
-        if isinstance(number, int):
-            if 0 <= number <= 16:
-                self.log.info('Switching audio listening mode to '+str(number))
-                self.command('Z1ALM'+str(number).zfill(2))
-
-
-    @property
-    def dolby_dynamic_range(self):
-        return self._get_multiprop('Z1DYN', mode='raw')
-
-    @property
-    def dolby_dynamic_range_text(self):
-        return self._get_multiprop('Z1DYN', mode='text')
-
-    @dolby_dynamic_range.setter
-    def dolby_dynamic_range(self,number):
-        if isinstance(number, int):
-            if 0 <= number <= 2:
-                self.log.info('Switching Dolby dynamic range to '+str(number))
-                self.command('Z1DYN'+str(number))
-
-
-    #
-    # Read-only properties with raw and text options
-    #
 
     @property
     def video_input_resolution(self):
@@ -508,6 +462,21 @@ class AnthemProtocol(asyncio.Protocol):
     def audio_input_format_text(self):
         return self._get_multiprop('Z1AIF', mode='text')
 
+    @property
+    def audio_listening_mode(self):
+        return self._get_multiprop('Z1ALM', mode='raw')
+
+    @property
+    def audio_listening_mode_text(self):
+        return self._get_multiprop('Z1ALM', mode='text')
+
+    @property
+    def dolby_dynamic_range(self):
+        return self._get_multiprop('Z1DYN', mode='raw')
+
+    @property
+    def dolby_dynamic_range_text(self):
+        return self._get_multiprop('Z1DYN', mode='text')
 
     #
     # Input number and lists
@@ -546,7 +515,3 @@ class AnthemProtocol(asyncio.Protocol):
     def dump_rawdata(self):
         attrs = vars(self)
         return(', '.join("%s: %s" % item for item in attrs.items()))
-
-    @property
-    def test_string(self):
-        return "I like cows"

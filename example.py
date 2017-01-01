@@ -33,6 +33,20 @@ def test():
 
     conn = yield from anthemav.Connection.create(host=host,port=port,loop=loop,update_callback=log_callback)
 
+    log.info('Power state is '+str(conn.protocol.power))
+    conn.protocol.power = True
+    log.info('Power state is '+str(conn.protocol.power))
+
+    yield from asyncio.sleep(2, loop=loop)
+
+    log.info('Panel brightness (raw) is '+str(conn.protocol.panel_brightness))
+    log.info('Panel brightness (text) is '+str(conn.protocol.panel_brightness_text))
+
+    log.info('Video resolution (text) is '+str(conn.protocol.video_input_resolution_text))
+    log.info('Audio input channels (text) is '+str(conn.protocol.audio_input_channels_text))
+    log.info('Audio input format (text) is '+str(conn.protocol.audio_input_format_text))
+    log.info('Audio listening mode (text) is '+str(conn.protocol.audio_listening_mode_text))
+
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
     loop = asyncio.get_event_loop()
