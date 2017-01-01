@@ -34,18 +34,18 @@ LOOKUP['Z1MUT'] = {'description': 'Zone 1 mute',
 LOOKUP['Z1ARC'] = {'description': 'Zone 1 ARC',
         '0': 'Off', '1': 'On'}
 LOOKUP['Z1VIR'] = {'description': 'Video input resolution',
-        '0': 'No input', '1': 'Other', '2': '1080p60', '3': '1080p50',
+        '0': 'No video', '1': 'Other', '2': '1080p60', '3': '1080p50',
         '4': '1080p24', '5': '1080i60', '6': '1080i50', '7': '720p60',
         '8': '720p50', '9': '576p50', '10': '576i50', '11': '480p60',
         '12': '480i60', '13': '3D', '14': '4K'}
 LOOKUP['Z1IRH'] = {'description': 'Active horizontal video resolution (pixels)'}
 LOOKUP['Z1IRV'] = {'description': 'Active vertical video resolution (pixels)'}
 LOOKUP['Z1AIC'] = {'description': 'Audio input channels',
-        '0': 'No input', '1': 'Other', '2': 'Mono (center channel only)',
+        '0': 'No audio', '1': 'Other', '2': 'Mono (center channel only)',
         '3': '2 channel', '4': '5.1 channel', '5': '6.1 channel',
         '6': '7.1 channel', '7': 'Atmos'}
 LOOKUP['Z1AIF'] = {'description': 'Audio input format',
-        '0': 'No input', '1': 'Analog', '2': 'PCM', '3': 'Dolby', '4': 'DSD',
+        '0': 'No audio', '1': 'Analog', '2': 'PCM', '3': 'Dolby', '4': 'DSD',
         '5': 'DTS', '6': 'Atmos'}
 LOOKUP['Z1BRT'] = {'description': 'Audio input bitrate (kbps)'}
 LOOKUP['Z1SRT'] = {'description': 'Audio input sampling rate (hKz)'}
@@ -90,7 +90,7 @@ class AnthemProtocol(asyncio.Protocol):
         self.log.info('Connection established to AVR')
         self.transport = transport
 
-        self.transport.set_write_buffer_limits(64)
+        self.transport.set_write_buffer_limits(128)
         limit_low,limit_high = self.transport.get_write_buffer_limits()
         self.log.debug("Write buffer limits %d to %d" % (limit_low, limit_high))
 
