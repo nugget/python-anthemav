@@ -7,11 +7,11 @@ import warnings
 
 dynamic_requires = []
 
-version = 0.9
+version = 1.0
 
 setup(
     name='anthemav',
-    version=0.9,
+    version=1.0,
     author='David McNett',
     author_email='nugget@macnugget.org',
     url='https://github.com/nugget/python-anthemav',
