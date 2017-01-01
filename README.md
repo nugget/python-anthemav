@@ -77,7 +77,7 @@ number that matches your receiver and its configured port:
   think that you're able to do the work, I'm someone is probably happy to
   perform the directed development in the form of a bug or feature bounty.
 
-- If your anxious for a feature but it's not actually worth money to you,
+- If your're anxious for a feature but it's not actually worth money to you,
   please open an issue here on Github describing the problem or limitation.  If
   you never ask, it'll never happen
 
