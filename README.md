@@ -43,6 +43,16 @@ is using the library in order to run those other applications.
   for it.  Eventually I intend to cover the full scope of the Anthem API, but
   you know how it goes.
 
+## Testing
+
+The package installs a command-line tool which will connect to your receiver,
+power it up, and then monitor all activity and changes that take place.  The
+code for this console monitor is in `anthemav/tools.py` and you can invoke it
+by simply running this at the command line with the appropriate IP and port
+number that matches your receiver and its configured port:
+
+    anthemav_monitor --host 10.0.0.100 --port 14999
+
 ## Related Links
 
 - [API Documentation for Anthem Network
