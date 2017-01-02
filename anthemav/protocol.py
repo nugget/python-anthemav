@@ -374,7 +374,7 @@ class AVR(asyncio.Protocol):
         """
         try:
             return round((90.00 + int(value)) / 90 * 100)
-        except:
+        except ValueError:
             return 0
 
     def volume_to_attenuation(self, value):
@@ -390,7 +390,7 @@ class AVR(asyncio.Protocol):
         """
         try:
             return round((value / 100) * 90) - 90
-        except:
+        except ValueError:
             return -90
 
     @property
@@ -407,7 +407,9 @@ class AVR(asyncio.Protocol):
         """
         try:
             return int(self._Z1VOL)
-        except:
+        except ValueError:
+            return -90
+        except NameError:
             return -90
 
     @attenuation.setter
@@ -464,10 +466,13 @@ class AVR(asyncio.Protocol):
 
     def _get_boolean(self, key):
         keyname = '_'+key
-        value = '0'
-        if hasattr(self, keyname):
+        try:
             value = getattr(self, keyname)
-        return bool(value)
+            return(bool(int(value)))
+        except ValueError:
+            return False
+        except AttributeError:
+            return False
 
     def _set_boolean(self, key, value):
         if value is True:
@@ -602,7 +607,7 @@ class AVR(asyncio.Protocol):
             value = getattr(self, keyname)
         try:
             return int(value)
-        except:
+        except ValueError:
             return
 
     @property
