@@ -9,6 +9,7 @@ try:
 except:
     ensure_future = asyncio.async
 
+
 class Connection:
     def __init__(self):
         self.log = logging.getLogger(__name__)
@@ -19,7 +20,7 @@ class Connection:
             auto_reconnect=True, loop=None, protocol_class=AnthemProtocol,
             update_callback=None):
 
-        assert port >= 0, "Invalid port value: %r" % (port)
+        assert port >= 0, 'Invalid port value: %r' % (port)
         conn = cls()
 
         conn.host = host
@@ -62,7 +63,7 @@ class Connection:
                 if self._halted:
                     yield from asyncio.sleep(2, loop=self._loop)
                 else:
-                    self.log.info("Connecting to Anthem AVR at %s:%d" % (self.host, self.port))
+                    self.log.info('Connecting to Anthem AVR at %s:%d', self.host, self.port)
                     yield from self._loop.create_connection(lambda: self.protocol, self.host, self.port)
                     self._reset_retry_interval()
                     return
@@ -70,7 +71,7 @@ class Connection:
             except OSError:
                 self._increase_retry_interval()
                 interval = self._get_retry_interval()
-                self.log.warn('Connecting failed, retrying in %i seconds' % interval)
+                self.log.warn('Connecting failed, retrying in %i seconds', interval)
                 yield from asyncio.sleep(interval, loop=self._loop)
 
     def close(self):
