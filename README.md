@@ -1,8 +1,8 @@
 # python-anthemav
 
 [![Build Status](https://travis-ci.org/nugget/python-anthemav.svg?branch=master)](https://travis-ci.org/nugget/python-anthemav)
-[![GitHub release](https://img.shields.io/github/release/nugget/python-anthemav.svg)]()
-[![PyPI](https://img.shields.io/pypi/v/anthemav.svg)]()
+[![GitHub release](https://img.shields.io/github/release/nugget/python-anthemav.svg)](https://github.com/nugget/python-anthemav/releases)
+[![PyPI](https://img.shields.io/pypi/v/anthemav.svg)](https://pypi.python.org/pypi/anthemav)
 
 This is a Python package to interface with [Anthem](http://www.anthemav.com)
 AVM and MRX receivers and processors.  It uses the asyncio library to maintain
