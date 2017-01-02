@@ -43,6 +43,28 @@ is using the library in order to run those other applications.
   for it.  Eventually I intend to cover the full scope of the Anthem API, but
   you know how it goes.
 
+## Installation
+
+You can, of course, just install the most recent release of this package using
+`pip`.  This will download the more rececnt version from [PyPI] and install it
+to your host.
+
+[PyPI]: https://pypi.python.org/pypi/anthemav
+
+    pip install anthemav
+
+If you want to grab the the development code, you can also clone this git
+repository and install from local sources:
+
+	cd python-anthemav
+    pip install .
+
+And, as you probably expect, you can live the developer's life by working with
+the live repo and edit to your heart's content:
+
+    cd python-anthemav
+	pip install . -e
+
 ## Testing
 
 The package installs a command-line tool which will connect to your receiver,
