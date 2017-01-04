@@ -547,7 +547,7 @@ class AVR(asyncio.Protocol):
     @property
     def mute(self):
         """Mute on or off (read/write)."""
-        self._get_boolean('Z1MUT')
+        return self._get_boolean('Z1MUT')
 
     @mute.setter
     def mute(self, value):
