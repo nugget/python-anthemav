@@ -139,7 +139,7 @@ class AVR(asyncio.Protocol):
         self.log.info('Connection established to AVR')
         self.transport = transport
 
-        self.transport.set_write_buffer_limits(0)
+        #self.transport.set_write_buffer_limits(0)
         limit_low, limit_high = self.transport.get_write_buffer_limits()
         self.log.debug('Write buffer limits %d to %d', limit_low, limit_high)
 
@@ -251,6 +251,7 @@ class AVR(asyncio.Protocol):
 
                     if key == 'Z1POW' and value == '1' and oldvalue == '0':
                         self.log.info('Power on detected, refreshing all attributes')
+                        time.sleep(2)
                         self.refresh_all()
 
                     break
