@@ -348,7 +348,7 @@ class AVR(asyncio.Protocol):
         self.log.debug('> %s', command)
         try:
             self.transport.write(command)
-            time.sleep(0.01)
+            time.sleep(0.05)
         except:
             self.log.warning('No transport found, unable to send command')
 
@@ -497,6 +497,7 @@ class AVR(asyncio.Protocol):
 
     @power.setter
     def power(self, value):
+        self._set_boolean('Z1POW', value)
         self._set_boolean('Z1POW', value)
 
     @property
