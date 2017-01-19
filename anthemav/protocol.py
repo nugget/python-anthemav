@@ -98,6 +98,7 @@ class AVR(asyncio.Protocol):
         self.buffer = ''
         self._input_names = {}
         self._input_numbers = {}
+        self._poweron_refresh_successful = False
         self.transport = None
 
         for key in LOOKUP:
@@ -114,9 +115,26 @@ class AVR(asyncio.Protocol):
 
         This does not return any data, it just issues the queries.
         """
-        self.log.info('refresh_core')
+        self.log.info('Sending out mass query for all attributes')
         for key in ATTR_CORE:
             self.query(key)
+
+    def poweron_refresh(self):
+        """Keep requesting all attributes until it works.
+
+        Immediately after a power on event (POW1) the AVR is inconsistent with
+        which attributes can be successfully queried.  When we detect that
+        power has just been turned on, we loop every second making a bulk
+        query for every known attribute.  This continues until we detect that
+        values have been returned for at least one input name (this seems to
+        be the laggiest of all the attributes)
+        """
+        if self._poweron_refresh_successful:
+            return
+        else:
+            self.refresh_all()
+            self._loop.call_later(2, self.poweron_refresh)
+
 
     def refresh_all(self):
         """Query device for all attributes that are known.
@@ -127,8 +145,10 @@ class AVR(asyncio.Protocol):
 
         This does not return any data, it just issues the queries.
         """
+        self.log.info('refresh_all')
         for key in LOOKUP:
             self.query(key)
+
 
     #
     # asyncio network functions
@@ -162,7 +182,7 @@ class AVR(asyncio.Protocol):
         self.transport = None
 
         if self._connection_lost_callback:
-            self._connection_lost_callback()
+            self._loop.call_soon(self._connection_lost_callback)
 
     def _assemble_buffer(self):
         """Split up received data from device into individual commands.
@@ -251,17 +271,22 @@ class AVR(asyncio.Protocol):
 
                     if key == 'Z1POW' and value == '1' and oldvalue == '0':
                         self.log.info('Power on detected, refreshing all attributes')
-                        time.sleep(1)
-                        self.refresh_all()
+                        self._poweron_refresh_successful = False
+                        self._loop.call_later(1, self.poweron_refresh)
+
+                    if key == 'Z1POW' and value == '0' and oldvalue == '1':
+                        self._poweron_refresh_successful = False
 
                     break
 
         if data.startswith('ICN'):
+            self.log.warning('ICN update received')
             recognized = True
             self._populate_inputs(int(value))
 
         if data.startswith('ISN'):
             recognized = True
+            self._poweron_refresh_successful = True
 
             input_number = int(data[3:5])
             value = data[5:]
@@ -276,7 +301,7 @@ class AVR(asyncio.Protocol):
 
         if newdata:
             if self._update_callback:
-                self._update_callback(data)
+                self._loop.call_soon(self._update_callback, data)
         else:
             self.log.debug('no new data encountered')
 
@@ -348,7 +373,7 @@ class AVR(asyncio.Protocol):
         self.log.debug('> %s', command)
         try:
             self.transport.write(command)
-            time.sleep(0.05)
+            time.sleep(0.01)
         except:
             self.log.warning('No transport found, unable to send command')
 
@@ -471,7 +496,7 @@ class AVR(asyncio.Protocol):
         keyname = '_'+key
         try:
             value = getattr(self, keyname)
-            return(bool(int(value)))
+            return bool(int(value))
         except ValueError:
             return False
         except AttributeError:
