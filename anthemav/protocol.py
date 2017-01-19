@@ -251,7 +251,7 @@ class AVR(asyncio.Protocol):
 
                     if key == 'Z1POW' and value == '1' and oldvalue == '0':
                         self.log.info('Power on detected, refreshing all attributes')
-                        time.sleep(2)
+                        time.sleep(1)
                         self.refresh_all()
 
                     break
@@ -276,7 +276,14 @@ class AVR(asyncio.Protocol):
 
         if newdata:
             if self._update_callback:
-                self._update_callback(data)
+                if asyncio.iscoroutinefunction(self._update_callback):
+                    self.log.debug('coroutine update_callback firing')
+                    self._loop.create_task(self._update_callback(data))
+                else:
+                    self.log.debug('normal function update_callback firing')
+                    self._update_callback(data)
+        else:
+            self.log.debug('no new data encountered')
 
         if not recognized:
             self.log.warning('Unrecognized response: %s', data)
