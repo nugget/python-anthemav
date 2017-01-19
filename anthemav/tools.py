@@ -51,7 +51,7 @@ def console(loop, log):
     conn.protocol.power = True
     log.info('Power state is '+str(conn.protocol.power))
 
-    yield from asyncio.sleep(2, loop=loop)
+    yield from asyncio.sleep(10, loop=loop)
 
     log.info('Panel brightness (raw) is '+str(conn.protocol.panel_brightness))
     log.info('Panel brightness (text) is '+str(conn.protocol.panel_brightness_text))
