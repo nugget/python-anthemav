@@ -15,7 +15,7 @@ if len(long_description) < 100:
 
 setup(
     name='anthemav',
-    version='1.1.6',
+    version='1.1.7',
     author='David McNett',
     author_email='nugget@macnugget.org',
     url='https://github.com/nugget/python-anthemav',
