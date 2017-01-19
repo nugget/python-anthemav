@@ -162,7 +162,12 @@ class AVR(asyncio.Protocol):
         self.transport = None
 
         if self._connection_lost_callback:
-            self._connection_lost_callback()
+            if asyncio.iscoroutinefunction(self._connection_lost_callback):
+                self.log.debug('coroutine connection_lost_callback firing')
+                self._loop.create_task(self._connection_lost_callback(data))
+            else:
+                self.log.debug('normal function connection_lost_callback firing')
+                self._connection_lost_callback()
 
     def _assemble_buffer(self):
         """Split up received data from device into individual commands.
