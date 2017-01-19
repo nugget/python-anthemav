@@ -77,6 +77,11 @@ number that matches your receiver and its configured port:
 
     anthemav_monitor --host 10.0.0.100 --port 14999
 
+## Helpful Commands
+
+    sudo tcpflow -c port 14999
+
+
 ## Interesting Links
 
 - [Project Home](https://github.com/nugget/python-anthemav)
