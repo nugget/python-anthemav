@@ -23,15 +23,16 @@ is using the library in order to run those other applications.
 
 ## Requirements
 
-- Python 3.4 or 3.5 with asyncio
+- Python 3.4 or newer with asyncio
 - An Anthem MRX or AVM receiver or processor
 
 ## Known Issues
 
-- This has only been tested with an MRXx10 series receiver, although the Anthem
-  protocol was largely unchanged from the MRXx00 series.  It should work with
+- This has only been tested with an MRXx20 series receiver, although the Anthem
+  protocol was largely unchanged from the MRXx10 series.  It should work with
   the older units, but I'd appreciate feedback or pull requests if you
-  encounter problems
+  encounter problems.  It will definitely not work with the original MRXx00
+  units or the D2v models.  
 
 - Only Zone 1 is currently supported.  If you have other zones configured, this
   library will not allow you to inspect or control them.  This is not an
