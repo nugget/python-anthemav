@@ -2,6 +2,7 @@
 import argparse
 import asyncio
 import logging
+import settings
 
 import anthemav
 
@@ -22,8 +23,8 @@ def console(loop, log):
         Show debug logging.
     """
     parser = argparse.ArgumentParser(description=console.__doc__)
-    parser.add_argument('--host', default='127.0.0.1', help='IP or FQDN of AVR')
-    parser.add_argument('--port', default='14999', help='Port of AVR')
+    parser.add_argument('--host', default=settings.IPADDRESS, help='IP or FQDN of AVR')
+    parser.add_argument('--port', default=settings.PORT, help='Port of AVR')
     parser.add_argument('--verbose', '-v', action='count')
 
     args = parser.parse_args()

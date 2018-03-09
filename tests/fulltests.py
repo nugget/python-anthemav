@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
 
+# to run this test you need to add the parent folder path to your PYTHONPATH. See the following example
+# Use this command if your terminal is in the parent folder: PYTHONPATH=/path/to/parent/folder python tests/fulltests.py
+# Use this command if your terminal is in the tests folder: PYTHONPATH=/path/to/parent/folder python fulltests.py
+
 import asyncio
 import unittest
 import logging
+import settings
 
 import anthemav
 
@@ -13,10 +18,10 @@ def test():
     def log_callback(message):
         log.info('Callback invoked: %s' % message)
 
-    host = '127.0.0.1'
-    port = 14999
+    host = settings.IPADDRESS
+    port = settings.PORT
 
-    log.info('Connecting to Anthem AVR at %s:%i' % (host, port))
+    log.info('Connecting to Anthem AVR at %s:%s' % (host, port))
 
     # conn = yield from anthemav.Connection.create(host=host,port=port,loop=loop,update_callback=log_callback,auto_reconnect=False)
 
