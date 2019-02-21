@@ -1,21 +1,15 @@
 #!/usr/bin/env python
-
+"""Setup for anthemav module."""
 from setuptools import setup
-import sys
 
-try:
-    import pypandoc
-    long_description = pypandoc.convert('README.md', 'rst')
-except:
-    print('Skipping md->rst conversion for long_description')
-    long_description = 'Error converting Markdown from git repo'
-
-if len(long_description) < 100:
-    print("\n***\n***\nWARNING: %s\n***\n***\n" % long_description)
+def readme():
+    """Return README file as a string."""
+    with open('README.rst', 'r') as f:
+        return f.read()
 
 setup(
     name='anthemav',
-    version='1.1.8',
+    version='1.1.9',
     author='David McNett',
     author_email='nugget@macnugget.org',
     url='https://github.com/nugget/python-anthemav',
@@ -23,7 +17,7 @@ setup(
     packages=['anthemav'],
     scripts=[],
     description='Python API for controlling Anthem Receivers',
-    long_description=long_description,
+    long_description=readme(),
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
