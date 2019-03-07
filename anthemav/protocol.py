@@ -9,7 +9,7 @@ __all__ = ('AVR')
 try:
     ensure_future = asyncio.ensure_future
 except AttributeError:
-    ensure_future = asyncio.async
+    ensure_future = getattr(asyncio, 'async')
 
 # These properties apply even when the AVR is powered off
 ATTR_CORE = {'Z1POW', 'IDM'}
