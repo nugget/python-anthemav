@@ -61,5 +61,5 @@ def monitor():
     """Wrapper to call console with a loop."""
     log = logging.getLogger(__name__)
     loop = asyncio.get_event_loop()
-    asyncio.async(console(loop, log))
+    asyncio.ensure_future(console(loop, log))
     loop.run_forever()
