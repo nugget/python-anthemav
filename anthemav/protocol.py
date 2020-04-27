@@ -522,8 +522,9 @@ class AVR(asyncio.Protocol):
 
     @power.setter
     def power(self, value):
+        self.log.debug('Setting power  from {} to {}', self._Z1POW, value)
         self._set_boolean('Z1POW', value)
-        self._set_boolean('Z1POW', value)
+        self.query('Z1POW')
 
     @property
     def txstatus(self):
