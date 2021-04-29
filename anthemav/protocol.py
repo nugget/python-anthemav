@@ -100,6 +100,7 @@ class AVR(asyncio.Protocol):
         self._input_numbers = {}
         self._poweron_refresh_successful = False
         self.transport = None
+        self._resend_action = {}
 
         for key in LOOKUP:
             setattr(self, '_'+key, '')
@@ -165,9 +166,13 @@ class AVR(asyncio.Protocol):
 
         self.command('ECH1')
         self.refresh_core()
+        if self._resend_action:
+            for k, v in self._resend_action.items():
+                self._set_boolean(k, v)
 
     def data_received(self, data):
         """Called when asyncio.Protocol detects received data from network."""
+        self._resend_action = {}
         self.buffer += data.decode()
         self.log.debug('Received %d bytes from AVR: %s', len(self.buffer), self.buffer)
         self._assemble_buffer()
@@ -522,6 +527,7 @@ class AVR(asyncio.Protocol):
 
     @power.setter
     def power(self, value):
+        self._resend_action = {'Z1POW': value}
         self._set_boolean('Z1POW', value)
         self._set_boolean('Z1POW', value)
 
