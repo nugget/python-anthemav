@@ -508,6 +508,7 @@ class AVR(asyncio.Protocol):
             return False
 
     def _set_boolean(self, key, value):
+        self._resend_action = {key: value}
         if value is True:
             self.command(key+'1')
         else:
@@ -527,7 +528,6 @@ class AVR(asyncio.Protocol):
 
     @power.setter
     def power(self, value):
-        self._resend_action = {'Z1POW': value}
         self._set_boolean('Z1POW', value)
         self._set_boolean('Z1POW', value)
 
