@@ -19,8 +19,7 @@ class Connection:
         self.log = logging.getLogger(__name__)
 
     @classmethod
-    @asyncio.coroutine
-    def create(
+    async def create(
         cls,
         host="localhost",
         port=14999,
@@ -79,7 +78,7 @@ class Connection:
             update_callback=update_callback,
         )
 
-        yield from conn._reconnect()
+        await conn._reconnect()
 
         return conn
 
@@ -101,17 +100,16 @@ class Connection:
     def _increase_retry_interval(self):
         self._retry_interval = min(300, 1.5 * self._retry_interval)
 
-    @asyncio.coroutine
-    def _reconnect(self):
+    async def _reconnect(self):
         while True:
             try:
                 if self._halted:
-                    yield from asyncio.sleep(2, loop=self._loop)
+                    await asyncio.sleep(2, loop=self._loop)
                 else:
-                    self.log.info(
+                    self.log.debug(
                         "Connecting to Anthem AVR at %s:%d", self.host, self.port
                     )
-                    yield from self._loop.create_connection(
+                    await self._loop.create_connection(
                         lambda: self.protocol, self.host, self.port
                     )
                     self._reset_retry_interval()
@@ -121,11 +119,16 @@ class Connection:
                 self._increase_retry_interval()
                 interval = self._get_retry_interval()
                 self.log.warning("Connecting failed, retrying in %i seconds", interval)
-                yield from asyncio.sleep(interval, loop=self._loop)
+                if not self._auto_reconnect or self._closing:
+                    raise
+                await asyncio.sleep(interval, loop=self._loop)
+
+            if not self._auto_reconnect or self._closing:
+                break
 
     def close(self):
         """Close the AVR device connection and don't try to reconnect."""
-        self.log.warning("Closing connection to AVR")
+        self.log.debug("Closing connection to AVR")
         self._closing = True
         if self.protocol.transport:
             self.protocol.transport.close()

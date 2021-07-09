@@ -7,8 +7,7 @@ import logging
 import anthemav
 
 
-@asyncio.coroutine
-def test():
+async def test():
     log = logging.getLogger(__name__)
 
     def log_callback(message):
@@ -19,7 +18,7 @@ def test():
 
     log.info("Connecting to Anthem AVR at %s:%i" % (host, port))
 
-    # conn = yield from anthemav.Connection.create(host=host,port=port,loop=loop,update_callback=log_callback,auto_reconnect=False)
+    # conn = await anthemav.Connection.create(host=host,port=port,loop=loop,update_callback=log_callback,auto_reconnect=False)
 
 
 if __name__ == "__main__":

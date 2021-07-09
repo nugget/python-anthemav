@@ -27,7 +27,7 @@ run those other applications.
 Requirements
 ------------
 
--  Python 3.4 or newer with asyncio
+-  Python 3.5 or newer with asyncio
 -  An Anthem MRX or AVM receiver or processor
 
 Known Issues
