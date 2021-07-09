@@ -12,7 +12,7 @@ except AttributeError:
     ensure_future = getattr(asyncio, "async")
 
 # These properties apply even when the AVR is powered off
-ATTR_CORE = {"Z1POW", "IDM"}
+ATTR_CORE = {"Z1POW", "IDM", "IDN"}
 
 LOOKUP = {}
 
@@ -161,6 +161,9 @@ class AVR(asyncio.Protocol):
         """
         self.log.info("Sending out mass query for all attributes")
         for key in ATTR_CORE:
+            if self.transport is None:
+                self.log.warning("Lost connection to receiver while refreshing device")
+                break
             self.query(key)
 
     def poweron_refresh(self):
@@ -173,7 +176,7 @@ class AVR(asyncio.Protocol):
         values have been returned for at least one input name (this seems to
         be the laggiest of all the attributes)
         """
-        if self._poweron_refresh_successful:
+        if self._poweron_refresh_successful or self.transport is None:
             return
         else:
             self.refresh_all()
@@ -190,6 +193,9 @@ class AVR(asyncio.Protocol):
         """
         self.log.info("refresh_all")
         for key in LOOKUP:
+            if self.transport is None:
+                self.log.warning("Lost connection to receiver while refreshing device")
+                break
             self.query(key)
 
     #
@@ -216,10 +222,10 @@ class AVR(asyncio.Protocol):
 
     def connection_lost(self, exc):
         """Called when asyncio.Protocol loses the network connection."""
-        if exc is None:
-            self.log.warning("eof from receiver?")
-        else:
-            self.log.warning("Lost connection to receiver: %s", exc)
+        self.log.warning("Lost connection to receiver")
+
+        if exc is not None:
+            self.log.debug(exc)
 
         self.transport = None
 
@@ -275,10 +281,10 @@ class AVR(asyncio.Protocol):
             self.log.warning("Out-of-range command: %s", data[2:])
             recognized = True
         elif data.startswith("!E"):
-            self.log.warning("Cannot execute recognized command: %s", data[2:])
+            self.log.debug("Cannot execute recognized command: %s", data[2:])
             recognized = True
         elif data.startswith("!Z"):
-            self.log.warning("Ignoring command for powered-off zone: %s", data[2:])
+            self.log.debug("Ignoring command for powered-off zone: %s", data[2:])
             recognized = True
         else:
 
@@ -326,10 +332,18 @@ class AVR(asyncio.Protocol):
                     if key == "Z1POW" and value == "0" and oldvalue == "1":
                         self._poweron_refresh_successful = False
 
+                    if self._Z1POW == "0" and all(
+                        coreKey not in key for coreKey in ATTR_CORE
+                    ):
+                        # AVR doesn't send Power State ON
+                        # force refresh power state when receiving any command from a potential powered on AVR
+                        self.log.debug("Force refresh Power State")
+                        self.query("Z1POW")
+
                     break
 
         if data.startswith("ICN"):
-            self.log.warning("ICN update received")
+            self.log.debug("ICN update received")
             recognized = True
             self._populate_inputs(int(value))
 
@@ -572,7 +586,7 @@ class AVR(asyncio.Protocol):
     @power.setter
     def power(self, value):
         self._set_boolean("Z1POW", value)
-        self._set_boolean("Z1POW", value)
+        self.query("Z1POW")
 
     @property
     def txstatus(self):
@@ -580,7 +594,7 @@ class AVR(asyncio.Protocol):
 
         When enabled, all commands, status changes, and control information
         are reported through the Ethernet and RS-232 connections.  Do not
-        disable this setting, the anthemav pacakge requires it.
+        disable this setting, the anthemav package requires it.
 
         It is explicitly set to True whenever this module connects to the AVR,
         but I'll still let you disable it though, because I believe in aiming
@@ -630,6 +644,8 @@ class AVR(asyncio.Protocol):
     @mute.setter
     def mute(self, value):
         self._set_boolean("Z1MUT", value)
+        # Query mute because the AVR doesn't always return back the state (eg: after power on without changing the volume first)
+        self.query("Z1MUT")
 
     #
     # Read-only text properties
