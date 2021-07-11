@@ -7,7 +7,7 @@ __all__ = "Connection"
 
 try:
     ensure_future = asyncio.ensure_future
-except:
+except Exception:
     ensure_future = getattr(asyncio, "async")
 
 
@@ -70,7 +70,7 @@ class Connection:
         def connection_lost():
             """Function callback for Protocoal class when connection is lost."""
             if conn._auto_reconnect and not conn._closing:
-                ensure_future(conn._reconnect(), loop=conn._loop)
+                ensure_future(conn.reconnect(), loop=conn._loop)
 
         conn.protocol = protocol_class(
             connection_lost_callback=connection_lost,
@@ -78,7 +78,8 @@ class Connection:
             update_callback=update_callback,
         )
 
-        await conn._reconnect()
+        if auto_reconnect:
+            await conn.reconnect()
 
         return conn
 
@@ -100,7 +101,7 @@ class Connection:
     def _increase_retry_interval(self):
         self._retry_interval = min(300, 1.5 * self._retry_interval)
 
-    async def _reconnect(self):
+    async def reconnect(self):
         while True:
             try:
                 if self._halted:

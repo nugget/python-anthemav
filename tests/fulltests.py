@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
 
 import asyncio
-import unittest
 import logging
-
-import anthemav
 
 
 async def test():
