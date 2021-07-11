@@ -437,7 +437,7 @@ class AVR(asyncio.Protocol):
         try:
             self.transport.write(command)
             time.sleep(0.01)
-        except:
+        except Exception:
             self.log.warning("No transport found, unable to send command")
 
     #
@@ -644,7 +644,8 @@ class AVR(asyncio.Protocol):
     @mute.setter
     def mute(self, value):
         self._set_boolean("Z1MUT", value)
-        # Query mute because the AVR doesn't always return back the state (eg: after power on without changing the volume first)
+        # Query mute because the AVR doesn't always return back the state
+        # (eg: after power on without changing the volume first)
         self.query("Z1MUT")
 
     #

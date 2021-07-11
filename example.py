@@ -8,8 +8,7 @@ import logging
 log = logging.getLogger(__name__)
 
 
-@asyncio.coroutine
-def test():
+async def test():
     parser = argparse.ArgumentParser(description=test.__doc__)
     parser.add_argument("--host", default="127.0.0.1", help="IP or FQDN of AVR")
     parser.add_argument("--port", default="14999", help="Port of AVR")
@@ -32,7 +31,7 @@ def test():
 
     log.info("Connecting to Anthem AVR at %s:%i" % (host, port))
 
-    conn = yield from anthemav.Connection.create(
+    conn = await anthemav.Connection.create(
         host=host, port=port, loop=loop, update_callback=log_callback
     )
 
@@ -40,7 +39,7 @@ def test():
     conn.protocol.power = True
     log.info("Power state is " + str(conn.protocol.power))
 
-    yield from asyncio.sleep(2, loop=loop)
+    await asyncio.sleep(2, loop=loop)
 
     log.info("Panel brightness (raw) is " + str(conn.protocol.panel_brightness))
     log.info("Panel brightness (text) is " + str(conn.protocol.panel_brightness_text))
@@ -62,5 +61,5 @@ def test():
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     loop = asyncio.get_event_loop()
-    asyncio.async(test())
+    loop.run_until_complete(test())
     loop.run_forever()

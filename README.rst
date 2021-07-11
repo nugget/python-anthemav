@@ -146,8 +146,8 @@ How can you help?
    `EFF <https://supporters.eff.org/donate/>`__, or
    `EPIC <https://epic.org>`__ and let me know that you did.
 
-.. |Build Status| image:: https://travis-ci.org/nugget/python-anthemav.svg?branch=master
-   :target: https://travis-ci.org/nugget/python-anthemav
+.. |Build Status| image:: https://github.com/nugget/python-anthemav/actions/workflows/build.yml/badge.svg?branch=master
+   :target: https://github.com/nugget/python-anthemav/actions/workflows/build.yml
 .. |GitHub release| image:: https://img.shields.io/github/release/nugget/python-anthemav.svg
    :target: https://github.com/nugget/python-anthemav/releases
 .. |PyPI| image:: https://img.shields.io/pypi/v/anthemav.svg
