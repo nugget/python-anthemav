@@ -14,6 +14,30 @@ except AttributeError:
 # These properties apply even when the AVR is powered off
 ATTR_CORE = {"Z1POW", "IDM", "IDN"}
 
+# Audio Listening mode
+ALM_NUMBER = {
+    "None": 0,
+    "AnthemLogic Cinema": 1,
+    "AnthemLogic Music": 2,
+    "PLII Movie": 3,
+    "PLII Music": 4,
+    "Neo Cinema": 5,
+    "Neo Music": 6,
+    "All Channel": 7,
+    "All Channel Mono": 8,
+    "Mono": 9,
+    "Mono-Academy": 10,
+    "Mono (L)": 11,
+    "Mono (R)": 12,
+    "High Blend": 13,
+    "Dolby Surround": 14,
+}
+
+# Some models (eg:MRX 520) provide a limited list of listening mode
+ALM_RESTRICTED = ["00", "01", "02", "03", "04", "05", "06", "07"]
+
+ALM_RESTRICTED_MODEL = ["MRX 520"]
+
 LOOKUP = {}
 
 LOOKUP["Z1POW"] = {"description": "Zone 1 Power", "0": "Off", "1": "On"}
@@ -85,13 +109,13 @@ LOOKUP["Z1AIR"] = {"description": "Audio input rate name"}
 LOOKUP["Z1ALM"] = {
     "description": "Audio listening mode",
     "00": "None",
-    "01": "AnthemLogic Movie",
+    "01": "AnthemLogic Cinema",
     "02": "AnthemLogic Music",
-    "03": "PLIIx Movie",
-    "04": "PLIIx Music",
-    "05": "Neo:6 Cinema",
-    "06": "Neo:6 Music",
-    "07": "All Channel Stereo",
+    "03": "PLII Movie",
+    "04": "PLII Music",
+    "05": "Neo Cinema",
+    "06": "Neo Music",
+    "07": "All Channel",
     "08": "All Channel Mono",
     "09": "Mono",
     "10": "Mono-Academy",
@@ -99,8 +123,8 @@ LOOKUP["Z1ALM"] = {
     "12": "Mono (R)",
     "13": "High Blend",
     "14": "Dolby Surround",
-    "15": "Neo:X Cinema",
-    "16": "Neo:X Music",
+    "15": "Neo Cinema",
+    "16": "Neo Music",
 }
 LOOKUP["Z1DYN"] = {
     "description": "Dolby digital dynamic range",
@@ -159,7 +183,7 @@ class AVR(asyncio.Protocol):
 
         This does not return any data, it just issues the queries.
         """
-        self.log.info("Sending out mass query for all attributes")
+        self.log.debug("Sending out mass query for all attributes")
         for key in ATTR_CORE:
             if self.transport is None:
                 self.log.warning("Lost connection to receiver while refreshing device")
@@ -191,7 +215,7 @@ class AVR(asyncio.Protocol):
 
         This does not return any data, it just issues the queries.
         """
-        self.log.info("refresh_all")
+        self.log.debug("refresh_all")
         for key in LOOKUP:
             if self.transport is None:
                 self.log.warning("Lost connection to receiver while refreshing device")
@@ -204,7 +228,7 @@ class AVR(asyncio.Protocol):
 
     def connection_made(self, transport):
         """Called when asyncio.Protocol establishes the network connection."""
-        self.log.info("Connection established to AVR")
+        self.log.debug("Connection established to AVR")
         self.transport = transport
 
         # self.transport.set_write_buffer_limits(0)
@@ -303,7 +327,7 @@ class AVR(asyncio.Protocol):
                     if key in LOOKUP:
                         if "description" in LOOKUP[key]:
                             if value in LOOKUP[key]:
-                                self.log.info(
+                                self.log.debug(
                                     "%s: %s (%s) -> %s (%s)",
                                     changeindicator,
                                     LOOKUP[key]["description"],
@@ -312,7 +336,7 @@ class AVR(asyncio.Protocol):
                                     value,
                                 )
                             else:
-                                self.log.info(
+                                self.log.debug(
                                     "%s: %s (%s) -> %s",
                                     changeindicator,
                                     LOOKUP[key]["description"],
@@ -320,12 +344,12 @@ class AVR(asyncio.Protocol):
                                     value,
                                 )
                     else:
-                        self.log.info("%s: %s -> %s", changeindicator, key, value)
+                        self.log.debug("%s: %s -> %s", changeindicator, key, value)
 
                     setattr(self, "_" + key, value)
 
                     if key == "Z1POW" and value == "1" and oldvalue == "0":
-                        self.log.info("Power on detected, refreshing all attributes")
+                        self.log.debug("Power on detected, refreshing all attributes")
                         self._poweron_refresh_successful = False
                         self._loop.call_later(1, self.poweron_refresh)
 
@@ -359,7 +383,7 @@ class AVR(asyncio.Protocol):
             if oldname != value:
                 self._input_numbers[value] = input_number
                 self._input_names[input_number] = value
-                self.log.info("New Value: Input %d is called %s", input_number, value)
+                self.log.debug("New Value: Input %d is called %s", input_number, value)
                 newdata = True
 
         if newdata:
@@ -780,8 +804,15 @@ class AVR(asyncio.Protocol):
     def panel_brightness(self, number):
         if isinstance(number, int):
             if 0 <= number <= 3:
-                self.log.info("Switching panel brightness to " + str(number))
+                self.log.debug("Switching panel brightness to " + str(number))
                 self.command("FPB" + str(number))
+
+    @property
+    def audio_listening_mode_list(self):
+        """List of available listening mode"""
+        if any(m in self.model for m in ALM_RESTRICTED_MODEL):
+            return [LOOKUP["Z1ALM"][s] for s in ALM_RESTRICTED]
+        return list(ALM_NUMBER.keys())
 
     @property
     def audio_listening_mode(self):
@@ -807,8 +838,14 @@ class AVR(asyncio.Protocol):
     def audio_listening_mode(self, number):
         if isinstance(number, int):
             if 0 <= number <= 16:
-                self.log.info("Switching audio listening mode to " + str(number))
+                self.log.debug("Switching audio listening mode to %s", number)
                 self.command("Z1ALM" + str(number).zfill(2))
+
+    @audio_listening_mode_text.setter
+    def audio_listening_mode_text(self, text):
+        self.log.debug("Switching audio listening mode to %s", text)
+        if text in ALM_NUMBER:
+            self.command(f"Z1ALM{ALM_NUMBER[text]:02d}")
 
     @property
     def dolby_dynamic_range(self):
@@ -829,7 +866,7 @@ class AVR(asyncio.Protocol):
     def dolby_dynamic_range(self, number):
         if isinstance(number, int):
             if 0 <= number <= 2:
-                self.log.info("Switching Dolby dynamic range to " + str(number))
+                self.log.debug("Switching Dolby dynamic range to " + str(number))
                 self.command("Z1DYN" + str(number))
 
     #
@@ -907,7 +944,7 @@ class AVR(asyncio.Protocol):
     def input_number(self, number):
         if isinstance(number, int):
             if 1 <= number <= 99:
-                self.log.info("Switching input to " + str(number))
+                self.log.debug("Switching input to " + str(number))
                 self.command("Z1INP" + str(number))
 
     #
