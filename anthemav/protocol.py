@@ -170,7 +170,7 @@ class AVR(asyncio.Protocol):
         self.transport = None
 
         for key in LOOKUP:
-            setattr(self, "_" + key, "")
+            setattr(self, f"_{key}", "")
 
         self._Z1POW = "0"
 
@@ -269,7 +269,7 @@ class AVR(asyncio.Protocol):
 
         for message in self.buffer.split(";"):
             if message != "":
-                self.log.debug("assembled message " + message)
+                self.log.debug("assembled message %s", message)
                 self._parse_message(message)
 
         self.buffer = ""
@@ -285,7 +285,7 @@ class AVR(asyncio.Protocol):
         """
         total = total + 1
         for input_number in range(1, total):
-            self.query("ISN" + str(input_number).zfill(2))
+            self.query(f"ISN{input_number:02d}")
 
     def _parse_message(self, data):
         """Interpret each message datagram from device and do the needful.

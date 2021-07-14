@@ -1,6 +1,4 @@
-from typing import Protocol
 from anthemav.protocol import ALM_NUMBER, LOOKUP
-import pytest
 from anthemav import AVR
 from unittest.mock import patch
 
@@ -44,3 +42,11 @@ def test_mute_force_refresh():
     with patch.object(avr, "query") as mock:
         avr.mute = True
         mock.assert_called_once_with("Z1MUT")
+
+
+def test_populate_input():
+    avr = AVR()
+    with patch.object(avr, "query") as mock:
+        avr._populate_inputs(2)
+        mock.assert_any_call("ISN01")
+        mock.assert_called_with("ISN02")
