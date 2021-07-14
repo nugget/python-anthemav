@@ -393,7 +393,7 @@ class AVR(asyncio.Protocol):
             self.log.debug("no new data encountered")
 
         if not recognized:
-            self.log.warning("Unrecognized response: %s", data)
+            self.log.debug("Unrecognized response: %s", data)
 
     def query(self, item):
         """Issue a raw query to the device for an item.
