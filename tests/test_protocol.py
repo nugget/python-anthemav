@@ -33,8 +33,9 @@ def test_all_alm_matchnumber():
 def test_power_on_force_refresh():
     avr = AVR()
     with patch.object(avr, "query") as mock:
-        avr._parse_message("Z1INP01;")
-        mock.assert_called_once_with("Z1POW")
+        with patch.object(avr, "_loop"):
+            avr._parse_message("Z1INP01;")
+            mock.assert_called_once_with("Z1POW")
 
 
 def test_mute_force_refresh():

@@ -1,14 +1,10 @@
 """Module containing the connection wrapper for the AVR interface."""
 import asyncio
 import logging
+from typing import Callable
 from .protocol import AVR
 
-__all__ = "Connection"
-
-try:
-    ensure_future = asyncio.ensure_future
-except Exception:
-    ensure_future = getattr(asyncio, "async")
+__all__ = ["Connection"]
 
 
 class Connection:
@@ -17,16 +13,25 @@ class Connection:
     def __init__(self):
         """Instantiate the Connection object."""
         self.log = logging.getLogger(__name__)
+        self.host = ""
+        self.port = 0
+        self._loop: asyncio.AbstractEventLoop = None
+        self._retry_interval = 1
+        self._closed = False
+        self._closing = False
+        self._halted = False
+        self._auto_reconnect = False
+        self.protocol: asyncio.Protocol = None
 
     @classmethod
     async def create(
         cls,
-        host="localhost",
-        port=14999,
-        auto_reconnect=True,
-        loop=None,
-        protocol_class=AVR,
-        update_callback=None,
+        host: str = "localhost",
+        port: int = 14999,
+        auto_reconnect: bool = True,
+        loop: asyncio.AbstractEventLoop = None,
+        protocol_class: asyncio.Protocol = AVR,
+        update_callback: Callable[[str], None] = None,
     ):
         """Initiate a connection to a specific device.
 
@@ -55,7 +60,7 @@ class Connection:
         :type update_callback:
             callable
         """
-        assert port >= 0, "Invalid port value: %r" % (port)
+        assert port >= 0, f"Invalid port value: {port}"
         conn = cls()
 
         conn.host = host
@@ -67,10 +72,10 @@ class Connection:
         conn._halted = False
         conn._auto_reconnect = auto_reconnect
 
-        def connection_lost():
+        async def connection_lost():
             """Function callback for Protocoal class when connection is lost."""
             if conn._auto_reconnect and not conn._closing:
-                ensure_future(conn.reconnect(), loop=conn._loop)
+                await conn.reconnect()
 
         conn.protocol = protocol_class(
             connection_lost_callback=connection_lost,
@@ -102,10 +107,11 @@ class Connection:
         self._retry_interval = min(300, 1.5 * self._retry_interval)
 
     async def reconnect(self):
+        """Connect to the host and keep the connection open"""
         while True:
             try:
                 if self._halted:
-                    await asyncio.sleep(2, loop=self._loop)
+                    await asyncio.sleep(2)
                 else:
                     self.log.debug(
                         "Connecting to Anthem AVR at %s:%d", self.host, self.port
@@ -122,7 +128,7 @@ class Connection:
                 self.log.warning("Connecting failed, retrying in %i seconds", interval)
                 if not self._auto_reconnect or self._closing:
                     raise
-                await asyncio.sleep(interval, loop=self._loop)
+                await asyncio.sleep(interval)
 
             if not self._auto_reconnect or self._closing:
                 break
