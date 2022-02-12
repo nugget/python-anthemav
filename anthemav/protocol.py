@@ -9,7 +9,7 @@ __all__ = ["AVR"]
 ATTR_CORE = {"Z1POW", "IDM"}
 
 # Audio Listening mode
-ALM_NUMBER = {
+ALM_NUMBER_x20 = {
     "None": 0,
     "AnthemLogic Cinema": 1,
     "AnthemLogic Music": 2,
@@ -25,6 +25,18 @@ ALM_NUMBER = {
     "Mono (R)": 12,
     "High Blend": 13,
     "Dolby Surround": 14,
+}
+
+ALM_NUMBER_x40 = {
+    "None": 0,
+    "AnthemLogic Cinema": 1,
+    "AnthemLogic Music": 2,
+    "Dolby Surround": 3,
+    "DTS neural:X": 4,
+    "DTS Virtual:X": 5,
+    "All Channel Stereo": 6,
+    "Mono": 7,
+    "All Channel Mono": 8,
 }
 
 # Some models (eg:MRX 520) provide a limited list of listening mode
@@ -191,6 +203,7 @@ class AVR(asyncio.Protocol):
         self._force_refresh = False
         self._model_series = ""
         self._deviceinfo_received = asyncio.Event()
+        self._alm_number = {"None": 0}
 
         for key in LOOKUP:
             setattr(self, f"_{key}", "")
@@ -279,7 +292,10 @@ class AVR(asyncio.Protocol):
         """Called when asyncio.Protocol detects received data from network."""
         self.buffer += data.decode()
         self.log.debug("Received %d bytes from AVR: %s", len(self.buffer), self.buffer)
-        self._assemble_buffer()
+        try:
+            self._assemble_buffer()
+        except Exception as error:
+            self.log.warning("Unable to parse message. Error: %s", error)
 
     def connection_lost(self, exc):
         """Called when asyncio.Protocol loses the network connection."""
@@ -426,7 +442,7 @@ class AVR(asyncio.Protocol):
             recognized = True
             self._populate_inputs(int(value))
 
-        if data.startswith("ISN"):  # x20 series: ISN01Turntable
+        if data.startswith("ISN") and len(data) > 5:  # x20 series: ISN01Turntable
             recognized = True
             self._poweron_refresh_successful = True
 
@@ -440,7 +456,9 @@ class AVR(asyncio.Protocol):
                 self._input_names[input_number] = value
                 self.log.debug("New Value: Input %d is called %s", input_number, value)
                 newdata = True
-        elif data.startswith("IS"):  # x40 series, example "IS3INTurntable"
+        elif (
+            data.startswith("IS") and "IN" in data and len(data) > 5
+        ):  # x40 series, example "IS3INTurntable"
             recognized = True
             self._poweron_refresh_successful = True
             in_position = data.index("IN")
@@ -494,10 +512,12 @@ class AVR(asyncio.Protocol):
             self._model_series = "x40"
             self.query("EMAC")
             self.query("WMAC")
+            self._alm_number = ALM_NUMBER_x40
         else:
             self.log.debug("Set Command to Model x20")
             self._ignored_commands = COMMANDS_X40
             self._model_series = "x20"
+            self._alm_number = ALM_NUMBER_x20
             self.command("ECH1")
             self.query("IDN")
 
@@ -895,7 +915,7 @@ class AVR(asyncio.Protocol):
         """List of available listening mode"""
         if any(m in self.model for m in ALM_RESTRICTED_MODEL):
             return [LOOKUP["Z1ALM"][s] for s in ALM_RESTRICTED]
-        return list(ALM_NUMBER.keys())
+        return list(self._alm_number.keys())
 
     @property
     def audio_listening_mode(self):
@@ -927,8 +947,8 @@ class AVR(asyncio.Protocol):
     @audio_listening_mode_text.setter
     def audio_listening_mode_text(self, text):
         self.log.debug("Switching audio listening mode to %s", text)
-        if text in ALM_NUMBER:
-            self.command(f"Z1ALM{ALM_NUMBER[text]:02d}")
+        if text in self._alm_number:
+            self.command(f"Z1ALM{self._alm_number[text]:02d}")
 
     @property
     def dolby_dynamic_range(self):
