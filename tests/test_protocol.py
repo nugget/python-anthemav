@@ -1,10 +1,11 @@
-from anthemav.protocol import ALM_NUMBER, LOOKUP
+from anthemav.protocol import LOOKUP, ALM_NUMBER_x20
 from anthemav import AVR
 from unittest.mock import patch
 
 
 def test_default_alm_list():
     avr = AVR()
+    avr.set_model_command("MRX 1120")
     almList = avr.audio_listening_mode_list
     assert almList is not None
     assert len(almList) == 15
@@ -12,6 +13,7 @@ def test_default_alm_list():
 
 def test_restricted_alm_list():
     avr = AVR()
+    avr.set_model_command("MRX 520")
     avr._IDM = "MRX 520"
     almList = avr.audio_listening_mode_list
     assert almList is not None
@@ -20,6 +22,8 @@ def test_restricted_alm_list():
 
 def test_set_alm_text():
     avr = AVR()
+    avr.set_model_command("MRX 520")
+    avr._IDM = "MRX 520"
     with patch.object(avr, "command") as mock:
         avr.audio_listening_mode_text = "Neo Music"
         mock.assert_called_once_with("Z1ALM06")
@@ -27,7 +31,7 @@ def test_set_alm_text():
 
 def test_all_alm_matchnumber():
     for alm in list(LOOKUP["Z1ALM"].values())[1:]:
-        assert alm in ALM_NUMBER
+        assert alm in ALM_NUMBER_x20
 
 
 def test_power_on_force_refresh():
@@ -51,3 +55,29 @@ def test_populate_input():
         avr._populate_inputs(2)
         mock.assert_any_call("ISN01")
         mock.assert_called_with("ISN02")
+
+
+def test_populate_input_x40():
+    avr = AVR()
+    with patch.object(avr, "query") as mock:
+        avr.set_model_command("MRX 1140")
+        avr._populate_inputs(2)
+        mock.assert_any_call("IS1IN")
+        mock.assert_called_with("IS2IN")
+
+
+def test_parse_input_x40():
+    avr = AVR()
+    with patch.object(avr, "query"):
+        avr.set_model_command("MRX 1140")
+        avr._parse_message("IS3INName")
+        assert avr._input_names.get(3, "") == "Name"
+
+
+def test_parse_message_x40():
+    avr = AVR()
+    with patch.object(avr, "query"):
+        avr.set_model_command("MRX 1140")
+        avr._Z1POW = "1"
+        avr._parse_message("IS1ARC1")
+        assert avr._IS1ARC == "1"
