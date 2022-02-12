@@ -21,7 +21,7 @@ async def console(loop, log):
         Show debug logging.
     """
     parser = argparse.ArgumentParser(description=console.__doc__)
-    parser.add_argument("--host", default="192.168.3.16", help="IP or FQDN of AVR")
+    parser.add_argument("--host", default="127.0.0.1", help="IP or FQDN of AVR")
     parser.add_argument("--port", default="14999", help="Port of AVR")
     parser.add_argument("--verbose", "-v", action="count")
 
