@@ -15,7 +15,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+<<<<<<< HEAD
         python-version: ["3.9", "3.10"]
+=======
+        python-version: ["3.9", "3.10", "3.11"]
+>>>>>>> Fix python build version
 
     steps:
       - uses: actions/checkout@v2
