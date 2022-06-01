@@ -3,6 +3,8 @@ import asyncio
 import logging
 from typing import Awaitable, Callable
 
+from anthemav.device_error import DeviceError
+
 __all__ = ["AVR"]
 
 # These properties apply even when the AVR is powered off
@@ -144,6 +146,7 @@ LOOKUP["FPB"] = {
 }
 
 # MRX 540, 740, 1140
+LOOKUP["Z1PVOL"] = {"description": "Zone 1 Volume"}
 LOOKUP["WMAC"] = {"description": "Wi-Fi MAC address"}
 LOOKUP["EMAC"] = {"description": "Ethernet MAC address"}
 LOOKUP["IS1ARC"] = {"description": "Zone 1 ARC", "0": "Off", "1": "On"}
@@ -156,9 +159,10 @@ LOOKUP["GCTXS"] = {
 }
 
 COMMANDS_X20 = ["IDN", "ECH", "SIP", "Z1ARC", "FPB"]
-COMMANDS_X40 = ["WMAC", "EMAC", "IS1ARC", "GCFPB", "GCTXS"]
+COMMANDS_X40 = ["Z1PVOL", "WMAC", "EMAC", "IS1ARC", "GCFPB", "GCTXS"]
 
 EMPTY_MAC = "00:00:00:00:00:00"
+UNKNOWN_MODEL = "Unknown Model"
 
 
 # pylint: disable=too-many-instance-attributes, too-many-public-methods
@@ -212,7 +216,14 @@ class AVR(asyncio.Protocol):
 
     async def wait_for_device_initialised(self, timeout: float):
         """Wait to receive the model and mac address for the device"""
-        await asyncio.wait_for(self._deviceinfo_received.wait(), timeout)
+        try:
+            await asyncio.wait_for(self._deviceinfo_received.wait(), timeout)
+        except asyncio.TimeoutError:
+            raise DeviceError
+
+        if self.macaddress == EMPTY_MAC or self.model == UNKNOWN_MODEL:
+            raise DeviceError
+
         self.log.debug("device is initialised")
 
     def _set_device_initialised(self):
@@ -648,12 +659,18 @@ class AVR(asyncio.Protocol):
         >>> volvalue = volume
         >>> volume = 20
         """
-        return self.attenuation_to_volume(self.attenuation)
+        if self._model_series == "x40" and self._Z1PVOL:
+            return int(self._Z1PVOL)
+        else:
+            return self.attenuation_to_volume(self.attenuation)
 
     @volume.setter
     def volume(self, value):
         if isinstance(value, int) and 0 <= value <= 100:
-            self.attenuation = self.volume_to_attenuation(value)
+            if self._model_series == "x40":
+                self.command(f"Z1PVOL{value}")
+            else:
+                self.attenuation = self.volume_to_attenuation(value)
 
     @property
     def volume_as_percentage(self):
@@ -782,7 +799,7 @@ class AVR(asyncio.Protocol):
     @property
     def model(self):
         """Device Model Name (read-only)."""
-        return self._IDM or "Unknown Model"
+        return self._IDM or UNKNOWN_MODEL
 
     @property
     def swversion(self):
