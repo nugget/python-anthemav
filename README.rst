@@ -106,8 +106,9 @@ Interesting Links
 
 -  `Project Home <https://github.com/nugget/python-anthemav>`__
 -  `API Documentation for Anthem Network
-   Protocol <http://www.anthemav.com/downloads/MRX-x20-AVM-60-IP-RS-232.xls>`__
-   (Excel Spreadsheet)
+   Protocol (Excel Spreadsheet):
+   for MRX-x20 and AVM-60 <https://www.anthemav.com/downloads/MRX-x20-AVM-60-IP-RS-232.xls>__
+   for MRX-x40, AVM-70 and AVM-90 <https://www.anthemav.com/downloads/MRX-x40-AVM-70-90-IP-RS-232-v5.xls>`__   
 -  `Pictures of cats <http://imgur.com/r/cats>`__
 
 Credits
@@ -117,6 +118,11 @@ Credits
 
    -  https://github.com/nugget
    -  https://keybase.io/nugget
+
+-  This package is maintained by Alex Henry
+
+   - https://github.com/hyralex
+
 
 How can you help?
 -----------------
