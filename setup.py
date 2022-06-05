@@ -11,7 +11,7 @@ def readme():
 
 setup(
     name="anthemav",
-    version="1.3.2",
+    version="1.4.0",
     author="David McNett",
     author_email="nugget@macnugget.org",
     url="https://github.com/nugget/python-anthemav",
