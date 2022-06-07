@@ -170,7 +170,17 @@ LOOKUP["MAC"] = {"description": "MAC address"}
 
 COMMANDS_X20 = ["IDN", "ECH", "SIP", "Z1ARC", "FPB"]
 COMMANDS_X40 = ["PVOL", "WMAC", "EMAC", "IS1ARC", "GCFPB", "GCTXS"]
-COMMANDS_MDX_IGNORE = ["IDR"]
+COMMANDS_MDX_IGNORE = [
+    "IDR",
+    "Z1IRH",
+    "Z1IRV",
+    "Z1AIC",
+    "Z1BRT",
+    "Z1AIN",
+    "Z1DYN",
+    "Z1DIA",
+    "Z1ALM",
+]
 COMMANDS_MDX = ["MAC"]
 
 EMPTY_MAC = "00:00:00:00:00:00"
@@ -222,6 +232,7 @@ class AVR(asyncio.Protocol):
         self._last_command = ""
         self._deviceinfo_received = asyncio.Event()
         self._alm_number = {"None": 0}
+        self._available_input_numbers = []
         self.zones: Dict[int, Zone] = {1: Zone(self, 1)}
 
         for key in LOOKUP:
@@ -276,7 +287,7 @@ class AVR(asyncio.Protocol):
             return
         else:
             await self.refresh_all()
-            await asyncio.sleep(2)
+            await asyncio.sleep(5)
             await self.poweron_refresh()
 
     async def refresh_all(self):
@@ -291,6 +302,9 @@ class AVR(asyncio.Protocol):
         self.log.debug("refresh_all")
         # refresh main attribues
         await self.query_commands(LOOKUP)
+        if self._model_series == "mdx":
+            # MDX receivers don't returns the list of available input numbers and have a fixed list
+            self._populate_inputs(12)
 
     async def refresh_power(self):
         """Refresh power of all zones."""
@@ -398,7 +412,11 @@ class AVR(asyncio.Protocol):
             if self._model_series == "x40":
                 self.query(f"IS{input_number}IN")
             else:
-                self.query(f"ISN{input_number:02d}")
+                if (
+                    len(self._available_input_numbers) == 0
+                    or input_number in self._available_input_numbers
+                ):
+                    self.query(f"ISN{input_number:02d}")
 
     async def _parse_message(self, data: str):
         """Interpret each message datagram from device and do the needful.
@@ -638,10 +656,12 @@ class AVR(asyncio.Protocol):
     def set_zones(self, model: str):
         """Set zones for the appropriate objects."""
         number_of_zones: int = 0
-        if model == "MDX 16" or model == "MDA 16":
+        if model == "MDX16" or model == "MDA16":
             number_of_zones = 8
-        elif model == "MDX 8" or model == "MDA 8":
+        elif model == "MDX8" or model == "MDA8":
             number_of_zones = 4
+            # MDX 16 input number range is 1 to 12, but MDX 8 only have 1 to 4 and 9
+            self._available_input_numbers = [1, 2, 3, 4, 9]
         else:
             number_of_zones = 2
 

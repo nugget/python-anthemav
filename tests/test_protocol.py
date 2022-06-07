@@ -85,22 +85,47 @@ class TestProtocol:
     async def test_zone_created_MDX8(self):
         avr = AVR()
         with patch.object(avr, "query"):
-            await avr._parse_message("IDMMDX 8")
+            await avr._parse_message("IDMMDX8")
             assert len(avr.zones) == 4
 
     async def test_zone_created_MDX16(self):
         avr = AVR()
         with patch.object(avr, "query"):
-            await avr._parse_message("IDMMDX 16")
+            await avr._parse_message("IDMMDX16")
+            assert len(avr.zones) == 8
+
+    async def test_zone_created_MDA16(self):
+        avr = AVR()
+        with patch.object(avr, "query"):
+            await avr._parse_message("IDMMDA16")
             assert len(avr.zones) == 8
 
     async def test_power_refreshed_MDX16(self):
         avr = AVR()
         with patch.object(avr, "query") as mock:
-            await avr._parse_message("IDMMDX 16")
+            await avr._parse_message("IDMMDX16")
             for zone in range(1, 9):
                 mock.assert_any_call(f"Z{zone}POW")
             assert call("Z9POW") not in mock.mock_calls
+
+    async def test_input_name_queried_for_MDX16(self):
+        avr = AVR()
+        with patch.object(avr, "query") as mock, patch.object(avr, "transport"):
+            await avr._parse_message("IDMMDX16")
+            await avr.refresh_all()
+            for input_number in range(1, 13):
+                mock.assert_any_call(f"ISN{input_number:02d}")
+
+    async def test_input_name_queried_for_MDX8(self):
+        avr = AVR()
+        with patch.object(avr, "query") as mock, patch.object(avr, "transport"):
+            await avr._parse_message("IDMMDX8")
+            await avr.refresh_all()
+            for input_number in range(1, 13):
+                if input_number in [1, 2, 3, 4, 9]:
+                    mock.assert_any_call(f"ISN{input_number:02d}")
+                else:
+                    assert call(f"ISN{input_number:02d}") not in mock.mock_calls
 
     async def test_pvol_x40(self):
         avr = AVR()
