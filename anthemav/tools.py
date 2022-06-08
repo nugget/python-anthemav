@@ -49,12 +49,11 @@ async def console(loop, log):
 
     log.info("Power state is " + str(conn.protocol.power))
     conn.protocol.power = True
+    await asyncio.sleep(5)
     log.info("Power state is " + str(conn.protocol.power))
-
-    await asyncio.sleep(10, loop=loop)
-
-    log.info("Panel brightness (raw) is " + str(conn.protocol.panel_brightness))
-    log.info("Panel brightness (text) is " + str(conn.protocol.panel_brightness_text))
+    log.info("Model is %s", conn.protocol.model)
+    log.info("Number of zone is %s", len(conn.protocol.zones))
+    log.info("Volume is " + str(conn.protocol.zones[1].volume))
 
 
 def monitor():

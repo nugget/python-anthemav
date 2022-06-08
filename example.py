@@ -39,10 +39,11 @@ async def test():
     conn.protocol.power = True
     log.info("Power state is " + str(conn.protocol.power))
 
-    await asyncio.sleep(2, loop=loop)
+    await asyncio.sleep(3)
 
-    log.info("Panel brightness (raw) is " + str(conn.protocol.panel_brightness))
-    log.info("Panel brightness (text) is " + str(conn.protocol.panel_brightness_text))
+    log.info("Model is %s", conn.protocol.model)
+    log.info("Number of zone is %s", len(conn.protocol.zones))
+    log.info("Volume is " + str(conn.protocol.zones[1].volume))
 
     log.info(
         "Video resolution (text) is " + str(conn.protocol.video_input_resolution_text)
