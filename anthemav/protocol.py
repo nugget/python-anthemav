@@ -83,6 +83,8 @@ LOOKUP["Z1VIR"] = {
     "12": "480i60",
     "13": "3D",
     "14": "4K",
+    "15": "4k50",
+    "16": "4k24",
 }
 LOOKUP["Z1IRH"] = {"description": "Active horizontal video resolution (pixels)"}
 LOOKUP["Z1IRV"] = {"description": "Active vertical video resolution (pixels)"}
@@ -172,14 +174,17 @@ COMMANDS_X20 = ["IDN", "ECH", "SIP", "Z1ARC", "FPB"]
 COMMANDS_X40 = ["PVOL", "WMAC", "EMAC", "IS1ARC", "GCFPB", "GCTXS"]
 COMMANDS_MDX_IGNORE = [
     "IDR",
+    "ICN",
+    "Z1AIC",
+    "Z1AIN",
+    "Z1AIR",
+    "Z1ALM",
+    "Z1BRT",
+    "Z1DIA",
+    "Z1DYN",
     "Z1IRH",
     "Z1IRV",
-    "Z1AIC",
-    "Z1BRT",
-    "Z1AIN",
-    "Z1DYN",
-    "Z1DIA",
-    "Z1ALM",
+    "Z1VIR",
 ]
 COMMANDS_MDX = ["MAC"]
 
@@ -903,12 +908,12 @@ class AVR(asyncio.Protocol):
     @property
     def audio_input_name(self):
         """Current audio input format short description (read-only)."""
-        return self._Z1AIN or "Unknown"
+        return self._Z1AIN or ""
 
     @property
     def audio_input_ratename(self):
         """Current audio input format sample or bit rate (read-only)."""
-        return self._Z1AIR or "Unknown"
+        return self._Z1AIR or ""
 
     #
     # Read-only raw numeric properties
@@ -1360,3 +1365,12 @@ class Zone:
         number = self._avr._input_numbers.get(value, 0)
         if number > 0:
             self.input_number = number
+
+    @property
+    def zone_input_format(self):
+        """Input video and audio format for the current zone if available (usually only zone 1)"""
+        if self._zone == 1 and self._avr._model_series != "mdx":
+            return (
+                f"{self._avr.video_input_resolution_text} {self._avr.audio_input_name}"
+            )
+        return ""
