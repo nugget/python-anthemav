@@ -242,13 +242,13 @@ class TestProtocol:
         avr._device_power = True
         await avr._parse_message("Z1VIR6")
         await avr._parse_message("Z1AINDTS Master Audio")
-        assert avr.zones[1].zone_input_format == "1080i50 DTS Master Audio"
+        assert avr.zones[1].input_format == "1080i50 DTS Master Audio"
 
     def test_zone_input_format_mdx(self):
         avr = AVR()
         avr._model_series = "mdx"
         avr._device_power = True
-        assert avr.zones[1].zone_input_format == ""
+        assert avr.zones[1].input_format == ""
 
     async def test_zone_input_format_mrx_zone2(self):
         avr = AVR()
@@ -257,4 +257,4 @@ class TestProtocol:
         avr.set_zones("MRX 540")
         await avr._parse_message("Z1VIR6")
         await avr._parse_message("Z1AINDTS Master Audio")
-        assert avr.zones[2].zone_input_format == ""
+        assert avr.zones[2].input_format == ""
