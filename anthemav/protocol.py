@@ -191,6 +191,10 @@ COMMANDS_MDX = ["MAC"]
 EMPTY_MAC = "00:00:00:00:00:00"
 UNKNOWN_MODEL = "Unknown Model"
 
+MODEL_X40 = "x40"
+MODEL_X20 = "x20"
+MODEL_MDX = "mdx"
+
 
 # pylint: disable=too-many-instance-attributes, too-many-public-methods
 class AVR(asyncio.Protocol):
@@ -307,7 +311,7 @@ class AVR(asyncio.Protocol):
         self.log.debug("refresh_all")
         # refresh main attribues
         await self.query_commands(LOOKUP)
-        if self._model_series == "mdx":
+        if self._model_series == MODEL_MDX:
             # MDX receivers don't returns the list of available input numbers and have a fixed list
             self._populate_inputs(12)
 
@@ -414,7 +418,7 @@ class AVR(asyncio.Protocol):
         """
         total = total + 1
         for input_number in range(1, total):
-            if self._model_series == "x40":
+            if self._model_series == MODEL_X40:
                 self.query(f"IS{input_number}IN")
             else:
                 if (
@@ -640,7 +644,7 @@ class AVR(asyncio.Protocol):
         if "40" in model or "70" in model or "90" in model:
             self.log.debug("Set Command to Model x40")
             self._ignored_commands = COMMANDS_X20 + COMMANDS_MDX
-            self._model_series = "x40"
+            self._model_series = MODEL_X40
             self.query("GCTXS")
             self.query("EMAC")
             self.query("WMAC")
@@ -648,12 +652,12 @@ class AVR(asyncio.Protocol):
         elif "MDX" in model or "MDA" in model:
             self.log.debug("Set Command to Model MDX")
             self._ignored_commands = COMMANDS_X20 + COMMANDS_X40 + COMMANDS_MDX_IGNORE
-            self._model_series = "mdx"
+            self._model_series = MODEL_MDX
             self.query("MAC")
         else:
             self.log.debug("Set Command to Model x20")
             self._ignored_commands = COMMANDS_X40 + COMMANDS_MDX
-            self._model_series = "x20"
+            self._model_series = MODEL_X20
             self._alm_number = ALM_NUMBER_x20
             self.command("ECH1")
             self.query("IDN")
@@ -661,9 +665,9 @@ class AVR(asyncio.Protocol):
     def set_zones(self, model: str):
         """Set zones for the appropriate objects."""
         number_of_zones: int = 0
-        if model == "MDX16" or model == "MDA16":
+        if self._model_series == MODEL_MDX and "16" in model:
             number_of_zones = 8
-        elif model == "MDX8" or model == "MDA8":
+        elif self._model_series == MODEL_MDX and "8" in model:
             number_of_zones = 4
             # MDX 16 input number range is 1 to 12, but MDX 8 only have 1 to 4 and 9
             self._available_input_numbers = [1, 2, 3, 4, 9]
@@ -861,15 +865,6 @@ class AVR(asyncio.Protocol):
     @arc.setter
     def arc(self, value):
         self._set_boolean("Z1ARC", value)
-
-    @property
-    def mute(self):
-        """Mute on or off (read/write)."""
-        return self.zones[1].mute
-
-    @mute.setter
-    def mute(self, value):
-        self.zones[1].mute = value
 
     #
     # Read-only text properties
@@ -1123,26 +1118,6 @@ class AVR(asyncio.Protocol):
         """List of all enabled inputs."""
         return list(self._input_numbers.keys())
 
-    @property
-    def input_name(self):
-        """Name of currently active input (read-write)."""
-        return self._input_names.get(self.input_number, "Unknown")
-
-    @input_name.setter
-    def input_name(self, value):
-        number = self._input_numbers.get(value, 0)
-        if number > 0:
-            self.input_number = number
-
-    @property
-    def input_number(self):
-        """Number of currently active input (read-write)."""
-        return self.zones[1].input_number
-
-    @input_number.setter
-    def input_number(self, number):
-        self.zones[1].input_number = number
-
     #
     # Miscellany
     #
@@ -1175,7 +1150,7 @@ class Zone:
     def query(self, command: str) -> None:
         self._avr.query(f"Z{self._zone}{command}")
 
-    def _get_integer(self, key, default: int = 0):
+    def _get_integer(self, key, default: int = 0) -> int:
         if key not in self.values:
             return default
         try:
@@ -1183,7 +1158,7 @@ class Zone:
         except ValueError:
             return 0
 
-    def _get_boolean(self, key):
+    def _get_boolean(self, key) -> bool:
         if key not in self.values:
             return False
         try:
@@ -1193,11 +1168,26 @@ class Zone:
         except AttributeError:
             return False
 
-    def _set_boolean(self, key, value):
+    def _set_boolean(self, key: str, value: bool):
         if value is True:
             self.command(key + "1")
         else:
             self.command(key + "0")
+
+    @property
+    def support_audio_listening_mode(self) -> bool:
+        """Return true if the zone support audio listening mode."""
+        return self._zone == 1 and self._avr._model_series != MODEL_MDX
+
+    @property
+    def support_attenuation(self) -> bool:
+        """Return true if the zone support sound mode and sound mode list."""
+        return self._avr._model_series == MODEL_X20
+
+    @property
+    def support_profile(self) -> bool:
+        """Return true if the zone support sound mode and sound mode list."""
+        return self._zone == 1 and self._avr._model_series != MODEL_MDX
 
     #
     # Volume and Attenuation handlers.  The Anthem tracks volume internally as
@@ -1211,7 +1201,7 @@ class Zone:
     #   - volume_as_percentage (0-1 floating point)
     #
 
-    def attenuation_to_volume(self, value):
+    def attenuation_to_volume(self, value: int) -> int:
         """Convert a native attenuation value to a volume value.
 
         Takes an attenuation in dB from the Anthem (-90 to 0) and converts it
@@ -1227,7 +1217,7 @@ class Zone:
         except ValueError:
             return 0
 
-    def volume_to_attenuation(self, value):
+    def volume_to_attenuation(self, value: int):
         """Convert a volume value to a native attenuation value.
 
         Takes a volume value and turns it into an attenuation value suitable
@@ -1244,7 +1234,7 @@ class Zone:
             return -90
 
     @property
-    def power(self):
+    def power(self) -> bool:
         """Report if device powered on or off (read/write).
 
         Returns and expects a boolean value.
@@ -1252,12 +1242,12 @@ class Zone:
         return self._get_boolean("POW")
 
     @power.setter
-    def power(self, value):
+    def power(self, value: bool):
         self._set_boolean("POW", value)
         self.query("POW")
 
     @property
-    def volume(self):
+    def volume(self) -> int:
         """Current volume level (read/write).
 
         You can get or set the current volume value on the device with this
@@ -1268,25 +1258,25 @@ class Zone:
         >>> volvalue = volume
         >>> volume = 20
         """
-        if self._avr._model_series == "x40" and "PVOL" in self.values:
+        if self._avr._model_series == MODEL_X40 and "PVOL" in self.values:
             return self._get_integer("PVOL")
-        elif self._avr._model_series == "mdx":
+        elif self._avr._model_series == MODEL_MDX:
             return self._get_integer("VOL")
         else:
             return self.attenuation_to_volume(self.attenuation)
 
     @volume.setter
-    def volume(self, value):
-        if isinstance(value, int) and 0 <= value <= 100:
-            if self._avr._model_series == "x40":
+    def volume(self, value: int):
+        if 0 <= value <= 100:
+            if self._avr._model_series == MODEL_X40:
                 self.command(f"PVOL{value}")
-            elif self._avr._model_series == "mdx":
+            elif self._avr._model_series == MODEL_MDX:
                 self.command(f"VOL{value}")
             else:
                 self.attenuation = self.volume_to_attenuation(value)
 
     @property
-    def volume_as_percentage(self):
+    def volume_as_percentage(self) -> float:
         """Current volume as percentage (read/write).
 
         You can get or set the current volume value as a percentage.  Valid
@@ -1301,14 +1291,13 @@ class Zone:
         return volume_per
 
     @volume_as_percentage.setter
-    def volume_as_percentage(self, value):
-        if isinstance(value, float) or isinstance(value, int):
-            if 0 <= value <= 1:
-                value = round(value * 100)
-                self.volume = value
+    def volume_as_percentage(self, value: float):
+        if 0 <= value <= 1:
+            value = round(value * 100)
+            self.volume = value
 
     @property
-    def attenuation(self):
+    def attenuation(self) -> int:
         """Current volume attenuation in dB (read/write).
 
         You can get or set the current attenuation value on the device with this
@@ -1322,54 +1311,51 @@ class Zone:
         return self._get_integer("VOL", -90)
 
     @attenuation.setter
-    def attenuation(self, value):
-        if isinstance(value, int) and -90 <= value <= 0:
+    def attenuation(self, value: int):
+        if -90 <= value <= 0:
             self._avr.log.debug("Setting attenuation to %s", str(value))
             self.command(f"VOL{value}")
 
     @property
-    def mute(self):
+    def mute(self) -> bool:
         """Mute on or off (read/write)."""
         return self._get_boolean("MUT")
 
     @mute.setter
-    def mute(self, value):
+    def mute(self, value: bool):
         self._set_boolean("MUT", value)
         # Query mute because the AVR doesn't always return back the state
         # (eg: after power on without changing the volume first)
         self.query("MUT")
 
     @property
-    def input_number(self):
+    def input_number(self) -> int:
         """Number of currently active input (read-write)."""
         return self._get_integer("INP")
 
     @input_number.setter
-    def input_number(self, number):
-        if isinstance(number, int):
-            if 1 <= number <= 99:
-                self._avr.log.debug(
-                    f"Switching input to {number} for zone {self._zone}"
-                )
-                self.command(f"INP{number}")
-                # Query to make sure it actually changes
-                self.query("INP")
+    def input_number(self, number: int):
+        if 1 <= number <= 99:
+            self._avr.log.debug(f"Switching input to {number} for zone {self._zone}")
+            self.command(f"INP{number}")
+            # Query to make sure it actually changes
+            self.query("INP")
 
     @property
-    def input_name(self):
+    def input_name(self) -> str:
         """Name of currently active input (read-write)."""
         return self._avr._input_names.get(self.input_number, "Unknown")
 
     @input_name.setter
-    def input_name(self, value):
+    def input_name(self, value: str):
         number = self._avr._input_numbers.get(value, 0)
         if number > 0:
             self.input_number = number
 
     @property
-    def input_format(self):
+    def input_format(self) -> str:
         """Input video and audio format for the current zone if available (usually only zone 1)"""
-        if self._zone == 1 and self._avr._model_series != "mdx":
+        if self._zone == 1 and self._avr._model_series != MODEL_MDX:
             return (
                 f"{self._avr.video_input_resolution_text} {self._avr.audio_input_name}"
             )
