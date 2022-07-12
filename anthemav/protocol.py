@@ -1175,8 +1175,8 @@ class Zone:
             self.command(key + "0")
 
     @property
-    def support_sound_mode(self) -> bool:
-        """Return true if the zone support sound mode and sound mode list."""
+    def support_audio_listening_mode(self) -> bool:
+        """Return true if the zone support audio listening mode."""
         return self._zone == 1 and self._avr._model_series != MODEL_MDX
 
     @property
