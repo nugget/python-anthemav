@@ -1367,7 +1367,7 @@ class Zone:
             self.input_number = number
 
     @property
-    def zone_input_format(self):
+    def input_format(self):
         """Input video and audio format for the current zone if available (usually only zone 1)"""
         if self._zone == 1 and self._avr._model_series != "mdx":
             return (
