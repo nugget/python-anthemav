@@ -40,7 +40,7 @@ class TestProtocol:
     def test_mute_force_refresh(self):
         avr = AVR()
         with patch.object(avr, "query") as mock:
-            avr.mute = True
+            avr.zones[1].mute = True
             mock.assert_called_once_with("Z1MUT")
 
     def test_populate_input_x20(self):
@@ -70,35 +70,22 @@ class TestProtocol:
             await avr._parse_message("IS1ARC1")
             assert avr._IS1ARC == "1"
 
-    async def test_zone_created_x20(self):
+    @pytest.mark.parametrize(
+        "model,zone",
+        [
+            ("MRX 520", 2),
+            ("MRX 1140", 2),
+            ("MDX8", 4),
+            ("MDX16", 8),
+            ("MDA8", 4),
+            ("MDA16", 8),
+        ],
+    )
+    async def test_zone_created(self, model: str, zone: int):
         avr = AVR()
         with patch.object(avr, "query"):
-            await avr._parse_message("IDMMRX 520")
-            assert len(avr.zones) == 2
-
-    async def test_zone_created_x40(self):
-        avr = AVR()
-        with patch.object(avr, "query"):
-            await avr._parse_message("IDMMRX 1140")
-            assert len(avr.zones) == 2
-
-    async def test_zone_created_MDX8(self):
-        avr = AVR()
-        with patch.object(avr, "query"):
-            await avr._parse_message("IDMMDX8")
-            assert len(avr.zones) == 4
-
-    async def test_zone_created_MDX16(self):
-        avr = AVR()
-        with patch.object(avr, "query"):
-            await avr._parse_message("IDMMDX16")
-            assert len(avr.zones) == 8
-
-    async def test_zone_created_MDA16(self):
-        avr = AVR()
-        with patch.object(avr, "query"):
-            await avr._parse_message("IDMMDA16")
-            assert len(avr.zones) == 8
+            await avr._parse_message(f"IDM{model}")
+            assert len(avr.zones) == zone
 
     async def test_power_refreshed_MDX16(self):
         avr = AVR()
@@ -250,7 +237,7 @@ class TestProtocol:
         avr._device_power = True
         assert avr.zones[1].input_format == ""
 
-    async def test_zone_input_format_mrx_zone2(self):
+    async def test_input_format_mrx_zone2(self):
         avr = AVR()
         avr._model_series = "x40"
         avr._device_power = True
@@ -258,3 +245,29 @@ class TestProtocol:
         await avr._parse_message("Z1VIR6")
         await avr._parse_message("Z1AINDTS Master Audio")
         assert avr.zones[2].input_format == ""
+
+    @pytest.mark.parametrize(
+        "model,expected", [("MRX 520", True), ("MRX 740", True), ("MDX8", False)]
+    )
+    async def test_support_zone1_MRX(self, model: str, expected: bool):
+        avr = AVR()
+        with patch.object(avr, "query"):
+            avr._device_power = True
+            avr.set_model_command(model)
+            avr.set_zones(model)
+            assert avr.zones[1].support_sound_mode == expected
+            assert avr.zones[2].support_sound_mode is False
+            assert avr.zones[1].support_profile == expected
+            assert avr.zones[2].support_profile is False
+
+    @pytest.mark.parametrize(
+        "model,expected", [("MRX 520", True), ("MRX 1140", False), ("MDX8", False)]
+    )
+    async def test_support_attenuation(self, model: str, expected: bool):
+        avr = AVR()
+        with patch.object(avr, "query"):
+            avr._device_power = True
+            avr.set_model_command(model)
+            avr.set_zones(model)
+            assert avr.zones[1].support_attenuation == expected
+            assert avr.zones[2].support_attenuation == expected
