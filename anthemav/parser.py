@@ -6,7 +6,11 @@ class ParsedMessage:
 
     command: str
     value: str
+<<<<<<< HEAD
     input_number: int
+=======
+    input_number: int | None
+>>>>>>> Add support for ARC and some refactoring
 
 
 def parse_message(message: str) -> ParsedMessage:
@@ -35,7 +39,11 @@ def parse_x40_input_message(message: str, command: str) -> ParsedMessage:
     return None
 
 
+<<<<<<< HEAD
 def get_x40_input_command(self, input_number: int, command: str) -> str:
+=======
+def get_x40_input_command(self, input_number: int, command: str) -> str | None:
+>>>>>>> Add support for ARC and some refactoring
     """Return a formatted message for a specific input."""
     if input_number > 0:
         return f"IS{self.input_number}{command}"
