@@ -1,5 +1,5 @@
 import pytest
-from anthemav.protocol import LOOKUP, ALM_NUMBER_x20
+from anthemav.protocol import LOOKUP, MODEL_X20, ALM_NUMBER_x20
 from anthemav import AVR
 from unittest.mock import call, patch
 
@@ -56,7 +56,9 @@ class TestProtocol:
             avr.set_model_command("MRX 1140")
             avr._populate_inputs(2)
             mock.assert_any_call("IS1IN")
-            mock.assert_called_with("IS2IN")
+            mock.assert_any_call("IS1ARC")
+            mock.assert_any_call("IS2IN")
+            mock.assert_any_call("IS2ARC")
 
     async def test_parse_input_x40(self):
         avr = AVR()
@@ -64,11 +66,41 @@ class TestProtocol:
             await avr._parse_message("IS3INName")
             assert avr._input_names.get(3, "") == "Name"
 
-    async def test_parse_message_x40(self):
+    async def test_parse_arc_x40(self):
+        avr = AVR()
+        with patch.object(avr, "query"), patch.object(avr, "_loop"):
+            avr.set_model_command("MRX 1140")
+            avr.zones[1].input_number = 2
+            await avr._parse_message("Z1INP2")
+            await avr._parse_message("IS2ARC1")
+            await avr._parse_message("IS1ARC0")
+            assert avr.arc is True
+
+    async def test_parse_arc_x20(self):
         avr = AVR()
         with patch.object(avr, "query"):
-            await avr._parse_message("IS1ARC1")
-            assert avr._IS1ARC == "1"
+            avr.set_model_command("MRX 520")
+            await avr._parse_message("Z1ARC1")
+            assert avr.arc is True
+
+    async def test_set_arc_x20(self):
+        avr = AVR()
+        avr._device_power = True
+        with patch.object(avr, "command") as mock:
+            avr._model_series = MODEL_X20
+            avr.arc = True
+            mock.assert_called_once_with("Z1ARC1")
+
+    async def test_set_arc_x40(self):
+        avr = AVR()
+        avr._device_power = True
+        with patch.object(avr, "query"), patch.object(
+            avr, "command"
+        ) as mock, patch.object(avr, "_loop"):
+            avr.set_model_command("MRX 1140")
+            await avr._parse_message("Z1INP3")
+            avr.arc = True
+            mock.assert_called_once_with("IS3ARC1")
 
     @pytest.mark.parametrize(
         "model,zone",
@@ -255,8 +287,8 @@ class TestProtocol:
             avr._device_power = True
             avr.set_model_command(model)
             avr.set_zones(model)
-            assert avr.zones[1].support_sound_mode == expected
-            assert avr.zones[2].support_sound_mode is False
+            assert avr.zones[1].support_audio_listening_mode == expected
+            assert avr.zones[2].support_audio_listening_mode is False
             assert avr.zones[1].support_profile == expected
             assert avr.zones[2].support_profile is False
 

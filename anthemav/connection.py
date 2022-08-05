@@ -107,7 +107,7 @@ class Connection:
         self._retry_interval = min(300, 1.5 * self._retry_interval)
 
     async def reconnect(self):
-        """Connect to the host and keep the connection open"""
+        """Connect to the host and keep the connection open."""
         while True:
             try:
                 if self._halted:
