@@ -834,7 +834,7 @@ class AVR(asyncio.Protocol):
         except AttributeError:
             return False
 
-    def _convert_to_boolean(self, value: str) -> bool | None:
+    def _convert_to_boolean(self, value: str) -> bool:
         if value == "1":
             return True
         elif value == "0":
@@ -903,7 +903,7 @@ class AVR(asyncio.Protocol):
         self._set_boolean("SIP", value)
 
     @property
-    def arc(self) -> bool | None:
+    def arc(self) -> bool:
         """Current ARC (Anthem Room Correction) on or off (read/write)."""
         if self._model_series == MODEL_X40:
             return self._convert_to_boolean(
@@ -1228,7 +1228,7 @@ class Zone:
         else:
             self.command(key + "0")
 
-    def get_current_input_value(self, command: str) -> str | None:
+    def get_current_input_value(self, command: str) -> str:
         if self.input_number > 0 and self._avr._model_series == MODEL_X40:
             return self._avr.values.get(f"IS{self.input_number}{command}")
         return None

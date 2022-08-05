@@ -35,7 +35,7 @@ def parse_x40_input_message(message: str, command: str) -> ParsedMessage:
     return None
 
 
-def get_x40_input_command(self, input_number: int, command: str) -> str | None:
+def get_x40_input_command(self, input_number: int, command: str) -> str:
     """Return a formatted message for a specific input."""
     if input_number > 0:
         return f"IS{self.input_number}{command}"
