@@ -44,10 +44,14 @@ def parse_x40_input_message(message: str, command: str) -> ParsedMessage:
 
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 def get_x40_input_command(self, input_number: int, command: str) -> str:
 =======
 def get_x40_input_command(self, input_number: int, command: str) -> str | None:
 >>>>>>> Add support for ARC and some refactoring
+=======
+def get_x40_input_command(self, input_number: int, command: str) -> str:
+>>>>>>> Fix issue with python 3.9
     """Return a formatted message for a specific input."""
     if input_number > 0:
         return f"IS{self.input_number}{command}"

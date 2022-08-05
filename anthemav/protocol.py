@@ -835,10 +835,14 @@ class AVR(asyncio.Protocol):
             return False
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     def _convert_to_boolean(self, value: str) -> bool:
 =======
     def _convert_to_boolean(self, value: str) -> bool | None:
 >>>>>>> Add support for ARC and some refactoring
+=======
+    def _convert_to_boolean(self, value: str) -> bool:
+>>>>>>> Fix issue with python 3.9
         if value == "1":
             return True
         elif value == "0":
@@ -908,10 +912,14 @@ class AVR(asyncio.Protocol):
 
     @property
 <<<<<<< HEAD
+<<<<<<< HEAD
     def arc(self) -> bool:
 =======
     def arc(self) -> bool | None:
 >>>>>>> Add support for ARC and some refactoring
+=======
+    def arc(self) -> bool:
+>>>>>>> Fix issue with python 3.9
         """Current ARC (Anthem Room Correction) on or off (read/write)."""
         if self._model_series == MODEL_X40:
             return self._convert_to_boolean(
@@ -1237,10 +1245,14 @@ class Zone:
             self.command(key + "0")
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     def get_current_input_value(self, command: str) -> str:
 =======
     def get_current_input_value(self, command: str) -> str | None:
 >>>>>>> Add support for ARC and some refactoring
+=======
+    def get_current_input_value(self, command: str) -> str:
+>>>>>>> Fix issue with python 3.9
         if self.input_number > 0 and self._avr._model_series == MODEL_X40:
             return self._avr.values.get(f"IS{self.input_number}{command}")
         return None
