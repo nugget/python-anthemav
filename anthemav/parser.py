@@ -6,7 +6,7 @@ class ParsedMessage:
 
     command: str
     value: str
-    input_number: int | None
+    input_number: int
 
 
 def parse_message(message: str) -> ParsedMessage:
