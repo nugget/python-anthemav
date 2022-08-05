@@ -7,10 +7,14 @@ class ParsedMessage:
     command: str
     value: str
 <<<<<<< HEAD
+<<<<<<< HEAD
     input_number: int
 =======
     input_number: int | None
 >>>>>>> Add support for ARC and some refactoring
+=======
+    input_number: int
+>>>>>>> Fix issue with python 3.9
 
 
 def parse_message(message: str) -> ParsedMessage:
