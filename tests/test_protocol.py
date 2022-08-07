@@ -130,7 +130,7 @@ class TestProtocol:
     async def test_input_name_queried_for_MDX16(self):
         avr = AVR()
         with patch.object(avr, "query") as mock, patch.object(avr, "transport"):
-            await avr._parse_message("IDMMDX16")
+            await avr._parse_message("IDMMDX-16")
             await avr.refresh_all()
             for input_number in range(1, 13):
                 mock.assert_any_call(f"ISN{input_number:02d}")
@@ -138,7 +138,7 @@ class TestProtocol:
     async def test_input_name_queried_for_MDX8(self):
         avr = AVR()
         with patch.object(avr, "query") as mock, patch.object(avr, "transport"):
-            await avr._parse_message("IDMMDX8")
+            await avr._parse_message("IDMMDX-8")
             await avr.refresh_all()
             for input_number in range(1, 13):
                 if input_number in [1, 2, 3, 4, 9]:
@@ -279,7 +279,7 @@ class TestProtocol:
         assert avr.zones[2].input_format == ""
 
     @pytest.mark.parametrize(
-        "model,expected", [("MRX 520", True), ("MRX 740", True), ("MDX8", False)]
+        "model,expected", [("MRX 520", True), ("MRX 740", True), ("MDX-8", False)]
     )
     async def test_support_zone1_MRX(self, model: str, expected: bool):
         avr = AVR()
@@ -287,10 +287,9 @@ class TestProtocol:
             avr._device_power = True
             avr.set_model_command(model)
             avr.set_zones(model)
-            assert avr.zones[1].support_audio_listening_mode == expected
-            assert avr.zones[2].support_audio_listening_mode is False
-            assert avr.zones[1].support_profile == expected
-            assert avr.zones[2].support_profile is False
+            assert avr.support_audio_listening_mode == expected
+            assert avr.support_profile == expected
+            assert avr.support_arc == expected
 
     @pytest.mark.parametrize(
         "model,expected", [("MRX 520", True), ("MRX 1140", False), ("MDX8", False)]
