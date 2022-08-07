@@ -766,6 +766,21 @@ class AVR(asyncio.Protocol):
             )
 
     @property
+    def support_audio_listening_mode(self) -> bool:
+        """Return true if the zone support audio listening mode."""
+        return self._model_series != MODEL_MDX
+
+    @property
+    def support_profile(self) -> bool:
+        """Return true if the zone support sound mode and sound mode list."""
+        return self._model_series != MODEL_MDX
+
+    @property
+    def support_arc(self) -> bool:
+        """Return true if the zone support Anthem room correction."""
+        return self._model_series != MODEL_MDX
+
+    @property
     def attenuation(self):
         """Current volume attenuation in dB (read/write).
 
@@ -1234,24 +1249,9 @@ class Zone:
         return None
 
     @property
-    def support_audio_listening_mode(self) -> bool:
-        """Return true if the zone support audio listening mode."""
-        return self._zone == 1 and self._avr._model_series != MODEL_MDX
-
-    @property
     def support_attenuation(self) -> bool:
         """Return true if the zone support sound mode and sound mode list."""
         return self._avr._model_series == MODEL_X20
-
-    @property
-    def support_profile(self) -> bool:
-        """Return true if the zone support sound mode and sound mode list."""
-        return self._zone == 1 and self._avr._model_series != MODEL_MDX
-
-    @property
-    def support_arc(self) -> bool:
-        """Return true if the zone support Anthem room correction."""
-        return self._zone == 1 and self._avr._model_series != MODEL_MDX
 
     #
     # Volume and Attenuation handlers.  The Anthem tracks volume internally as
