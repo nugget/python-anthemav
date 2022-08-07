@@ -109,6 +109,7 @@ Interesting Links
 
    - `MRX-x20 and AVM-60 <https://www.anthemav.com/downloads/MRX-x20-AVM-60-IP-RS-232.xls>`__
    - `MRX-x40, AVM-70 and AVM-90 <https://www.anthemav.com/downloads/MRX-x40-AVM-70-90-IP-RS-232-v5.xls>`__
+   - `MDX-16 and MDX-8 <https://www.anthemav.com/downloads/MDX-IP-RS232.xlsx>`__
    
 -  `Pictures of cats <http://imgur.com/r/cats>`__
 
