@@ -46,6 +46,13 @@ ALM_NUMBER_x40 = {
     "All Channel Mono": 8,
 }
 
+ALM_NUMBER_STR = {
+    "Stereo": 0,
+    "Mono": 1,
+    "Both=Left": 2,
+    "Both=Right": 3,
+}
+
 # Some models (eg:MRX 520) provide a limited list of listening mode
 ALM_RESTRICTED = ["00", "01", "02", "03", "04", "05", "06", "07"]
 
@@ -187,6 +194,25 @@ COMMANDS_MDX_IGNORE = [
     "Z1VIR",
 ]
 COMMANDS_MDX = ["MAC"]
+COMMANDS_STR_IGNORE = [
+    "ECH",
+    "EMAC",
+    "GCFPB",
+    "GCTXS",
+    "IDR",
+    "MAC",
+    "SIP",
+    "WMAC",
+    "Z1AIC",
+    "Z1AIN",
+    "Z1AIR",
+    "Z1BRT",
+    "Z1DIA",
+    "Z1DYN",
+    "Z1IRH",
+    "Z1IRV",
+    "Z1VIR",
+]
 
 EMPTY_MAC = "00:00:00:00:00:00"
 UNKNOWN_MODEL = "Unknown Model"
@@ -194,6 +220,7 @@ UNKNOWN_MODEL = "Unknown Model"
 MODEL_X40 = "x40"
 MODEL_X20 = "x20"
 MODEL_MDX = "mdx"
+MODEL_STR = "str"
 
 
 # pylint: disable=too-many-instance-attributes, too-many-public-methods
@@ -699,6 +726,13 @@ class AVR(asyncio.Protocol):
             self._ignored_commands = COMMANDS_X20 + COMMANDS_X40 + COMMANDS_MDX_IGNORE
             self._model_series = MODEL_MDX
             self.query("MAC")
+        elif "STR" in model:
+            self.log.debug("Set Command to Model STR")
+            self._ignored_commands = COMMANDS_STR_IGNORE
+            self._model_series = MODEL_STR
+            self._alm_number = ALM_NUMBER_STR
+            self._attenuation_range = [-96.0, 7.0]
+            self.query("IDN")
         else:
             self.log.debug("Set Command to Model x20")
             self._ignored_commands = COMMANDS_X40 + COMMANDS_MDX
@@ -716,6 +750,8 @@ class AVR(asyncio.Protocol):
             number_of_zones = 4
             # MDX 16 input number range is 1 to 12, but MDX 8 only have 1 to 4 and 9
             self._available_input_numbers = [1, 2, 3, 4, 9]
+        elif self._model_series == MODEL_STR:
+            number_of_zones = 1
         else:
             number_of_zones = 2
 
@@ -1270,11 +1306,12 @@ class Zone:
     @property
     def support_attenuation(self) -> bool:
         """Return true if the zone support sound mode and sound mode list."""
-        return self._avr._model_series == MODEL_X20
+        return self._avr._model_series in [MODEL_X20, MODEL_STR]
 
     #
     # Volume and Attenuation handlers.  The Anthem tracks volume internally as
     # an attenuation level usually ranging from -90dB (silent) to 0dB (bleeding ears).
+    # Note that STR pre-amplifiers have a range from -96dB to +7dB
     #
     # We expose this in three methods for the convenience of downstream apps
     # which will almost certainly be doing things their own way:
