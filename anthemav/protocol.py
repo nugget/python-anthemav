@@ -394,7 +394,10 @@ class AVR(asyncio.Protocol):
         disassembles the chain of datagrams into individual messages which
         are then passed on for interpretation.
         """
-        self.transport.pause_reading()
+        try:
+            self.transport.pause_reading()
+        except AttributeError:
+            self.log.warning('Lost connection to receiver while assembling buffer')
 
         for message in self.buffer.split(";"):
             if message != "":
@@ -409,7 +412,10 @@ class AVR(asyncio.Protocol):
 
         self.buffer = ""
 
-        self.transport.resume_reading()
+        try:
+            self.transport.resume_reading()
+        except AttributeError:
+            self.log.warning('Lost connection to receiver while assembling buffer')
         return
 
     def _populate_inputs(self, total):
