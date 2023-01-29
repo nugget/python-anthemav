@@ -242,6 +242,7 @@ class AVR(asyncio.Protocol):
         self._deviceinfo_received = asyncio.Event()
         self._alm_number = {"None": 0}
         self._available_input_numbers = []
+        self._attenuation_range = [-90.0, 0]
         self.zones: Dict[int, Zone] = {1: Zone(self, 1)}
         self.values: Dict[str, str] = {}
 
@@ -772,6 +773,18 @@ class AVR(asyncio.Protocol):
             )
 
     @property
+    def min_attenuation(self):
+        return self._attenuation_range[0]
+
+    @property
+    def max_attenuation(self):
+        return self._attenuation_range[1]
+
+    @property
+    def attenuation_range(self):
+        return self.max_attenuation - self.min_attenuation
+
+    @property
     def support_audio_listening_mode(self) -> bool:
         """Return true if the zone support audio listening mode."""
         return self._model_series != MODEL_MDX
@@ -791,7 +804,7 @@ class AVR(asyncio.Protocol):
         """Current volume attenuation in dB (read/write).
 
         You can get or set the current attenuation value on the device with this
-        property.  Valid range from -90 to 0.
+        property.  Valid range usually from -90 to 0.
 
         :Examples:
 
@@ -1261,7 +1274,7 @@ class Zone:
 
     #
     # Volume and Attenuation handlers.  The Anthem tracks volume internally as
-    # an attenuation level ranging from -90dB (silent) to 0dB (bleeding ears)
+    # an attenuation level usually ranging from -90dB (silent) to 0dB (bleeding ears).
     #
     # We expose this in three methods for the convenience of downstream apps
     # which will almost certainly be doing things their own way:
@@ -1271,23 +1284,23 @@ class Zone:
     #   - volume_as_percentage (0-1 floating point)
     #
 
-    def attenuation_to_volume(self, value: int) -> int:
+    def attenuation_to_volume(self, value: float) -> int:
         """Convert a native attenuation value to a volume value.
 
-        Takes an attenuation in dB from the Anthem (-90 to 0) and converts it
+        Takes an attenuation in dB from the Anthem (usually -90 to 0) and converts it
         into a normal volume value (0-100).
 
-            :param arg1: attenuation in dB (negative integer from -90 to 0)
-            :type arg1: int
+            :param arg1: attenuation in dB
+            :type arg1: float
 
         returns an integer value representing volume
         """
         try:
-            return round((90.00 + int(value)) / 90 * 100)
+            return int((round(2 * (float(value) - self._avr.min_attenuation)) / 2) / self._avr.attenuation_range * 100)
         except ValueError:
             return 0
 
-    def volume_to_attenuation(self, value: int):
+    def volume_to_attenuation(self, value: int) -> float:
         """Convert a volume value to a native attenuation value.
 
         Takes a volume value and turns it into an attenuation value suitable
@@ -1296,12 +1309,12 @@ class Zone:
             :param arg1: volume (integer from 0 to 100)
             :type arg1: int
 
-        returns a negative integer value representing attenuation in dB
+        returns a float value representing attenuation in dB
         """
         try:
-            return round((value / 100) * 90) - 90
+            return round(2 * (self._avr.min_attenuation + ((float(value) / 100) * self._avr.attenuation_range))) / 2
         except ValueError:
-            return -90
+            return self._avr.min_attenuation
 
     @property
     def power(self) -> bool:
@@ -1367,22 +1380,22 @@ class Zone:
             self.volume = value
 
     @property
-    def attenuation(self) -> int:
+    def attenuation(self) -> float:
         """Current volume attenuation in dB (read/write).
 
         You can get or set the current attenuation value on the device with this
-        property.  Valid range from -90 to 0.
+        property.  Valid range usually from -90 to 0.
 
         :Examples:
 
         >>> attvalue = attenuation
         >>> attenuation = -50
         """
-        return self._get_integer("VOL", -90)
+        return self._get_integer("VOL", self._avr.min_attenuation)
 
     @attenuation.setter
     def attenuation(self, value: int):
-        if -90 <= value <= 0:
+        if self._avr.min_attenuation <= value <= self._avr.max_attenuation:
             self._avr.log.debug("Setting attenuation to %s", str(value))
             self.command(f"VOL{value}")
 
