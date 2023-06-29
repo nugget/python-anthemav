@@ -454,6 +454,10 @@ class AVR(asyncio.Protocol):
         """
         total = total + 1
         for input_number in range(1, total):
+            if self._model_series == MODEL_STR:
+                # Manually add HTB input
+                self._input_numbers["HTB"] = 32
+                self._input_names[32] = "HTB"
             if self._model_series == MODEL_X40:
                 self.query(f"IS{input_number}IN")
                 self.query(f"IS{input_number}ARC")
@@ -474,6 +478,8 @@ class AVR(asyncio.Protocol):
         """
         recognized = False
         newdata = False
+
+        logging.info(f"Message:{data}")
 
         if data.startswith("!I"):
             self.log.warning("Invalid command: %s", data[2:])
@@ -1302,6 +1308,14 @@ class Zone:
         if self.input_number > 0 and self._avr._model_series == MODEL_X40:
             return self._avr.values.get(f"IS{self.input_number}{command}")
         return None
+    
+    def _get_float(self, key, default: float = 0.0) -> float:
+        if key not in self.values:
+            return default
+        try:
+            return float(self.values[key])
+        except ValueError:
+            return default
 
     @property
     def support_attenuation(self) -> bool:
@@ -1428,7 +1442,7 @@ class Zone:
         >>> attvalue = attenuation
         >>> attenuation = -50
         """
-        return self._get_integer("VOL", self._avr.min_attenuation)
+        return self._get_float("VOL", self._avr.min_attenuation)
 
     @attenuation.setter
     def attenuation(self, value: int):
