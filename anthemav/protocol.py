@@ -479,8 +479,6 @@ class AVR(asyncio.Protocol):
         recognized = False
         newdata = False
 
-        logging.info(f"Message:{data}")
-
         if data.startswith("!I"):
             self.log.warning("Invalid command: %s", data[2:])
             recognized = True
