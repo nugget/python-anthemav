@@ -762,7 +762,7 @@ class AVR(asyncio.Protocol):
             number_of_zones = 4
             # MDX 16 input number range is 1 to 12, but MDX 8 only have 1 to 4 and 9
             self._available_input_numbers = [1, 2, 3, 4, 9]
-        elif self._model_series == MODEL_STR_SEP or self._model_series == MODEL_STR_INT:
+        elif self._model_series in [MODEL_STR_SEP, MODEL_STR_INT]:
             number_of_zones = 1
         else:
             number_of_zones = 2
@@ -1314,7 +1314,7 @@ class Zone:
         if self.input_number > 0 and self._avr._model_series == MODEL_X40:
             return self._avr.values.get(f"IS{self.input_number}{command}")
         return None
-    
+
     def _get_float(self, key, default: float = 0.0) -> float:
         if key not in self.values:
             return default
