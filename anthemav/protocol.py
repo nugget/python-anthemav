@@ -220,7 +220,8 @@ UNKNOWN_MODEL = "Unknown Model"
 MODEL_X40 = "x40"
 MODEL_X20 = "x20"
 MODEL_MDX = "mdx"
-MODEL_STR = "str"
+MODEL_STR_SEP = "str_pa"
+MODEL_STR_INT = "str_ia"
 
 
 # pylint: disable=too-many-instance-attributes, too-many-public-methods
@@ -454,6 +455,10 @@ class AVR(asyncio.Protocol):
         """
         total = total + 1
         for input_number in range(1, total):
+            if self._model_series == MODEL_STR_INT:
+                # Manually add HTB input
+                self._input_numbers["HTB"] = 32
+                self._input_names[32] = "HTB"
             if self._model_series == MODEL_X40:
                 self.query(f"IS{input_number}IN")
                 self.query(f"IS{input_number}ARC")
@@ -726,10 +731,17 @@ class AVR(asyncio.Protocol):
             self._ignored_commands = COMMANDS_X20 + COMMANDS_X40 + COMMANDS_MDX_IGNORE
             self._model_series = MODEL_MDX
             self.query("MAC")
-        elif "STR" in model:
-            self.log.debug("Set Command to Model STR")
+        elif "STR PA" in model:
+            self.log.debug("Set Command to Model STR Pre-Amp")
             self._ignored_commands = COMMANDS_STR_IGNORE
-            self._model_series = MODEL_STR
+            self._model_series = MODEL_STR_SEP
+            self._alm_number = ALM_NUMBER_STR
+            self._attenuation_range = [-96.0, 7.0]
+            self.query("IDN")
+        elif "STR IA" in model:
+            self.log.debug("Set Command to Model STR Integrated")
+            self._ignored_commands = COMMANDS_STR_IGNORE
+            self._model_series = MODEL_STR_INT
             self._alm_number = ALM_NUMBER_STR
             self._attenuation_range = [-96.0, 7.0]
             self.query("IDN")
@@ -750,7 +762,7 @@ class AVR(asyncio.Protocol):
             number_of_zones = 4
             # MDX 16 input number range is 1 to 12, but MDX 8 only have 1 to 4 and 9
             self._available_input_numbers = [1, 2, 3, 4, 9]
-        elif self._model_series == MODEL_STR:
+        elif self._model_series == MODEL_STR_SEP or self._model_series == MODEL_STR_INT:
             number_of_zones = 1
         else:
             number_of_zones = 2
@@ -1302,11 +1314,19 @@ class Zone:
         if self.input_number > 0 and self._avr._model_series == MODEL_X40:
             return self._avr.values.get(f"IS{self.input_number}{command}")
         return None
+    
+    def _get_float(self, key, default: float = 0.0) -> float:
+        if key not in self.values:
+            return default
+        try:
+            return float(self.values[key])
+        except ValueError:
+            return default
 
     @property
     def support_attenuation(self) -> bool:
         """Return true if the zone support sound mode and sound mode list."""
-        return self._avr._model_series in [MODEL_X20, MODEL_STR]
+        return self._avr._model_series in [MODEL_X20, MODEL_STR_INT, MODEL_STR_SEP]
 
     #
     # Volume and Attenuation handlers.  The Anthem tracks volume internally as
@@ -1428,7 +1448,7 @@ class Zone:
         >>> attvalue = attenuation
         >>> attenuation = -50
         """
-        return self._get_integer("VOL", self._avr.min_attenuation)
+        return self._get_float("VOL", self._avr.min_attenuation)
 
     @attenuation.setter
     def attenuation(self, value: int):
