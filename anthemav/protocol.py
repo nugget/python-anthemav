@@ -47,10 +47,10 @@ ALM_NUMBER_x40 = {
 }
 
 ALM_NUMBER_STR = {
-    "Stereo": 0,
-    "Mono": 1,
-    "Both=Left": 2,
-    "Both=Right": 3,
+    "Stereo": 7,
+    "Mono": 9,
+    "Both=Left": 11,
+    "Both=Right": 12,
 }
 
 # Some models (eg:MRX 520) provide a limited list of listening mode
