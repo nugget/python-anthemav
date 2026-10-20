@@ -1401,9 +1401,10 @@ class Zone:
     def input_number(self, number: int):
         if 1 <= number <= 99:
             self._avr.log.debug(f"Switching input to {number} for zone {self._zone}")
+            # Don't query the input right after the command: the MRX 310 rejects
+            # an input change if another command arrives while it is switching.
+            # The receiver echoes the new input by itself, which updates the state.
             self.command(f"INP{number}")
-            # Query to make sure it actually changes
-            self.query("INP")
 
     @property
     def input_name(self) -> str:
